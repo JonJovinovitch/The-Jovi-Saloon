@@ -5,6 +5,9 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Harness/session runtime state — tied to a local process, not project code.
+.claude/scheduled_tasks.lock
+
 # Anything that could hold a credential. .env.example is the only
 # environment file that belongs in the repo.
 .env

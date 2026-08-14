@@ -51,6 +51,27 @@ function toast(text: string, kind: '' | 'err' | 'good' = ''): void {
   }, 3200);
 }
 
+/**
+ * Turn a stuck splash into a visible, actionable failure. Without this, any
+ * exception between the splash appearing and the 'welcome' message arriving
+ * is invisible — the spinner just runs forever, because splash.remove() only
+ * ever happens on 'welcome'.
+ */
+function showSplashError(message: string): void {
+  const inner = splash.querySelector('.inner');
+  if (!inner) return;
+  inner.querySelector('.spinner')?.remove();
+  let box = inner.querySelector<HTMLElement>('.splash-error');
+  if (!box) {
+    box = document.createElement('div');
+    box.className = 'splash-error';
+    box.innerHTML = `<p class="splash-error-msg"></p><button class="btn gold">Try again</button>`;
+    box.querySelector('button')!.addEventListener('click', () => location.reload());
+    inner.appendChild(box);
+  }
+  box.querySelector('.splash-error-msg')!.textContent = message;
+}
+
 /* ------------------------------------------------------------------ */
 /* state                                                               */
 /* ------------------------------------------------------------------ */
@@ -62,6 +83,7 @@ let myId = '';
 let net!: Net;
 let closeGamePicker: (() => void) | null = null;
 let hadTurn = false;
+let welcomeTimer = 0;
 
 const howto = new HowToDrawer();
 document.body.appendChild(howto.root);
@@ -240,7 +262,20 @@ function wirePrompt(): void {
 /* ------------------------------------------------------------------ */
 
 void (async () => {
-  const info = await boot();
+  let info;
+  try {
+    // boot() already bounds every machine-to-machine step internally (the
+    // config fetch, the Discord SDK calls) and falls back to asking for a
+    // name if any of them fail. This catch is only the last-resort net for
+    // something genuinely unexpected — it must not impose its own deadline,
+    // because the local-mode fallback legitimately waits on a human typing.
+    info = await boot();
+  } catch (err) {
+    console.error('boot failed', err);
+    showSplashError('Could not sign in. Tap Try Again — if it keeps happening, ask whoever set this up to check the server.');
+    return;
+  }
+
   myId = info.identity.userId;
 
   const helloMsg = (): ClientMessage => ({
@@ -263,11 +298,17 @@ void (async () => {
     },
   );
   net.connect();
+
+  window.clearTimeout(welcomeTimer);
+  welcomeTimer = window.setTimeout(() => {
+    showSplashError('Connected, but never heard back from the table. Tap Try Again.');
+  }, 20_000);
 })();
 
 function onMessage(msg: ServerMessage): void {
   switch (msg.t) {
     case 'welcome':
+      window.clearTimeout(welcomeTimer);
       sessionStorage.setItem('poker.session', msg.sessionKey);
       myId = msg.you.userId;
       room = msg.room;

@@ -23,6 +23,27 @@ export interface Boot {
 }
 
 /**
+ * Race a promise against a deadline. Used only around machine-to-machine
+ * steps (network calls, the Discord SDK) — never around anything waiting on
+ * a human, where "slow" and "stuck" look identical from the outside.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
+}
+
+/**
  * Ask the server which Discord app we belong to. Falls back to a build-time
  * value so a bundle built the old way still works.
  */
@@ -52,10 +73,22 @@ export function wsUrl(base: string): string {
 
 export async function boot(): Promise<Boot> {
   const embedded = isEmbedded();
-  const clientId = await fetchClientId(embedded ? '/.proxy' : '');
-  if (!embedded || !clientId) return bootLocal();
+
+  let clientId = '';
   try {
-    return await bootDiscord(clientId);
+    // A hung fetch (not just a failed one) would otherwise block everything
+    // that follows, including the local-mode fallback below.
+    clientId = await withTimeout(fetchClientId(embedded ? '/.proxy' : ''), 8_000, 'Config fetch');
+  } catch {
+    clientId = import.meta.env.VITE_DISCORD_CLIENT_ID ?? '';
+  }
+  if (!embedded || !clientId) return bootLocal();
+
+  try {
+    // Bounded because this is pure SDK/network back-and-forth with Discord —
+    // nothing here should ever legitimately take 20 seconds. bootLocal()
+    // below, by contrast, waits on a human and must stay unbounded.
+    return await withTimeout(bootDiscord(clientId), 20_000, 'Discord sign-in');
   } catch (err) {
     console.warn('Discord auth failed, falling back to local mode', err);
     return bootLocal();
