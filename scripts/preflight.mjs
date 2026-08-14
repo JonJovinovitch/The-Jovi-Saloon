@@ -61,7 +61,7 @@ if (!existsSync(distIndex)) {
 void statSync;
 
 console.log('');
-console.log(bold('  Poker Room — pre-flight'));
+console.log(bold('  The Jovi Saloon — pre-flight'));
 console.log('');
 
 if (problems.length === 0) {
@@ -69,13 +69,18 @@ if (problems.length === 0) {
   console.log(`  ${green('✓')} client bundle is built and current`);
   for (const n of notes) console.log(`  ${yellow('!')} ${n}`);
   console.log('');
-  console.log('  Next:');
+  console.log('  This is only needed for local testing. If you already have a');
+  console.log('  Railway deployment, its URL is what belongs in the Discord');
+  console.log('  URL Mapping — these DISCORD_CLIENT_ID / SECRET values need to');
+  console.log('  be set as Railway variables too, separately from this .env.');
+  console.log('');
+  console.log('  To test locally instead:');
   console.log(`    1. ${bold('npm run play')}     ${dim('# serves everything on http://localhost:3001')}`);
   console.log(`    2. ${bold('npm run tunnel')}   ${dim('# in a second terminal, copy the https:// host it prints')}`);
   console.log('    3. Discord portal → your app → Activities → URL Mappings');
   console.log(`       ${dim('prefix')}  /`);
   console.log(`       ${dim('target')}  <the tunnel host, no https:// and no trailing slash>`);
-  console.log('    4. Join a voice channel → Activities (rocket) → Poker Room');
+  console.log('    4. Join a voice channel → Activities (rocket) → The Jovi Saloon');
   console.log('');
 } else {
   for (const p of problems) console.log(`  ${red('✗')} ${p}`);

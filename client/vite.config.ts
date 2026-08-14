@@ -30,6 +30,9 @@ export default defineConfig({
         main: resolve(here, 'index.html'),
         // A reviewable contact sheet of the character art.
         cast: resolve(here, 'cast.html'),
+        // Static legal pages for Discord's developer portal fields.
+        privacy: resolve(here, 'privacy.html'),
+        terms: resolve(here, 'terms.html'),
       },
     },
   },

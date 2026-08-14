@@ -30,7 +30,7 @@ splash.className = 'splash';
 splash.innerHTML = `
   <div class="inner">
     <div class="suits">&spades; &hearts; &diams; &clubs;</div>
-    <h1>Poker Room</h1>
+    <h1>The Jovi Saloon</h1>
     <div class="rule"></div>
     <p>Dealer's choice &middot; est. 1876</p>
     <div class="spinner"></div>
@@ -117,7 +117,7 @@ const controls = new Controls({
 const topbar = document.createElement('div');
 topbar.className = 'topbar';
 topbar.innerHTML = `
-  <div class="brand"><span class="pip">&starf;</span><span>Poker Room</span></div>
+  <div class="brand"><span class="pip">&starf;</span><span>The Jovi Saloon</span></div>
   <div class="chip-tag game" id="game-tag">—</div>
   <div class="chip-tag" id="stakes-tag"></div>
   <div class="tablepicker" id="tables"></div>

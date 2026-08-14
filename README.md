@@ -1,4 +1,4 @@
-# Poker Room
+# The Jovi Saloon
 
 A Discord Activity poker room for you and your friends, set in a saloon back
 room in 1876. Dealer's choice across 14 real poker variants, a
@@ -110,7 +110,22 @@ cp .env.example .env
 Fill in `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, and set
 `VITE_DISCORD_CLIENT_ID` to the same client id.
 
-**3. Expose the server**
+**3. Privacy Policy and Terms of Service URLs**
+
+The portal's **General Information** tab has fields for these. The app ships
+both pages already, served at `/privacy.html` and `/terms.html` on whatever
+host you deploy to — for example:
+
+```
+https://the-jovi-saloon-production.up.railway.app/privacy.html
+https://the-jovi-saloon-production.up.railway.app/terms.html
+```
+
+Paste those into the matching fields and save. Edit the contact email at the
+bottom of [`client/privacy.html`](client/privacy.html) and
+[`client/terms.html`](client/terms.html) if you want a different one.
+
+**4. Expose the server**
 
 For a permanent setup, skip the tunnel and [deploy to Railway](#hosting-it-on-railway)
 instead — you get a fixed URL and never touch the URL mapping again.
@@ -123,7 +138,7 @@ npx cloudflared tunnel --url http://localhost:3000
 
 Copy the `https://….trycloudflare.com` hostname it prints.
 
-**4. Turn on Activities and map the URL**
+**5. Turn on Activities and map the URL**
 
 In the Developer Portal:
 
@@ -132,10 +147,10 @@ In the Developer Portal:
   hostname (no scheme, e.g. `abc-def.trycloudflare.com`).
 - **OAuth2** — make sure the `identify` scope is available.
 
-**5. Install and launch**
+**6. Install and launch**
 
 Install the app to your server, join a voice channel, open the activity
-launcher (the rocket icon), and pick Poker Room.
+launcher (the rocket icon), and pick The Jovi Saloon.
 
 Each voice channel gets its own room, so two channels can run separate games.
 
@@ -174,7 +189,7 @@ Do **not** set `PORT` — Railway injects it, and the server already reads it.
 override real environment variables, so Railway's `PORT` still wins.)
 
 **3. Generate a domain** under **Settings → Networking**. You get something
-like `poker-room-production.up.railway.app`.
+like `the-jovi-saloon-production.up.railway.app`.
 
 **4. Point Discord at it** — Activities → URL Mappings, prefix `/`, target that
 hostname (no `https://`, no trailing slash). This is the last time you touch it.
@@ -211,6 +226,9 @@ server/src/
   room.ts         membership and automatic table scaling
   bots.ts         practice opponents
   index.ts        HTTP + WebSocket + the Discord token exchange
+
+client/
+  cast.html, privacy.html, terms.html   static pages built alongside index.html
 
 client/src/
   main.ts         app shell

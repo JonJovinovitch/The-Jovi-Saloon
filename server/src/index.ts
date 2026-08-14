@@ -265,7 +265,7 @@ wss.on('connection', (ws) => {
             }
           : await resolveIdentity(msg.identity, msg.accessToken);
 
-      const room = getRoom(roomId, msg.roomName || 'Poker Room');
+      const room = getRoom(roomId, msg.roomName || 'The Jovi Saloon');
       const member = room.join(identity);
 
       // Drop any previous socket for the same user (refresh, second tab).
@@ -410,7 +410,7 @@ setInterval(() => {
 }, 30_000);
 
 server.listen(PORT, () => {
-  console.log(`poker room server listening on http://localhost:${PORT}`);
+  console.log(`the jovi saloon server listening on http://localhost:${PORT}`);
   if (CLIENT_ID && CLIENT_SECRET) {
     console.log(`  Discord auth ready (app ${CLIENT_ID})`);
   } else {

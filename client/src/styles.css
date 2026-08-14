@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------ *
- * Poker Room - a saloon back room, 1876.
+ * The Jovi Saloon - a poker room in a saloon back room, 1876.
  *
  * Leather, brass tacks, lamp light and worn baize. Everything is sized off
  * vmin so the whole room scales, because a Discord activity can be a narrow
@@ -1598,6 +1598,114 @@ body:has(.cast-wrap) {
   color: var(--brass-dim);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+/* ------------------------------------------------------------------ *
+ * legal pages (/privacy.html, /terms.html)
+ * ------------------------------------------------------------------ */
+
+.legal-wrap {
+  min-height: 100%;
+  overflow-y: auto;
+  padding: 4vmin 3vmin 6vmin;
+  background:
+    radial-gradient(70% 45% at 50% 0%, rgba(255, 205, 130, 0.12), transparent 70%),
+    radial-gradient(90% 70% at 50% 30%, #241a12, #0a0705);
+}
+
+body:has(.legal-wrap) {
+  overflow: auto;
+}
+
+.legal-doc {
+  max-width: 76vmin;
+  margin: 0 auto;
+  padding: 3vmin 3.4vmin;
+  border-radius: 0.9vmin;
+  background: linear-gradient(180deg, #2a1c13, #170f0a);
+  border: 1px solid var(--line);
+  border-top: 0.3vmin solid var(--brass-dim);
+  box-shadow: 0 2vmin 6vmin rgba(0, 0, 0, 0.6);
+}
+
+.legal-head {
+  text-align: center;
+  margin-bottom: 2.4vmin;
+}
+
+.legal-head .star {
+  font-size: 3.6vmin;
+  color: var(--brass);
+  line-height: 1;
+}
+
+.legal-head h1 {
+  margin: 0.5vmin 0 0;
+  font-size: 2.6vmin;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #f4e4c4;
+}
+
+.legal-head .rule {
+  height: 0.22vmin;
+  margin: 1.2vmin auto;
+  width: min(30vmin, 60%);
+  background: linear-gradient(90deg, transparent, var(--brass), transparent);
+}
+
+.legal-head p {
+  margin: 0;
+  color: var(--ink-dim);
+  font-family: var(--display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.78em;
+}
+
+.legal-doc h2 {
+  margin: 2.2vmin 0 0.8vmin;
+  font-size: 1.15em;
+  color: var(--brass-hi);
+  letter-spacing: 0.02em;
+}
+
+.legal-doc p {
+  margin: 0 0 1vmin;
+  color: #ddd0bc;
+  font-size: 0.95em;
+  line-height: 1.6;
+}
+
+.legal-doc ul {
+  margin: 0 0 1vmin;
+  padding-left: 2.4vmin;
+  color: #ddd0bc;
+  font-size: 0.95em;
+  line-height: 1.6;
+}
+
+.legal-doc li {
+  margin-bottom: 0.6vmin;
+}
+
+.legal-doc code {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--line);
+  border-radius: 0.3vmin;
+  padding: 0.05vmin 0.5vmin;
+  font-size: 0.9em;
+}
+
+.legal-doc a {
+  color: var(--brass);
+}
+
+.legal-doc .legal-back {
+  margin-top: 2.8vmin;
+  padding-top: 1.6vmin;
+  border-top: 1px solid var(--line);
+  font-size: 0.9em;
 }
 
 @media (prefers-reduced-motion: reduce) {

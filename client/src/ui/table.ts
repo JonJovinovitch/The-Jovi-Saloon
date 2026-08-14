@@ -73,7 +73,7 @@ export class TableRenderer {
         <div class="felt">
           <div class="felt-logo">
             <span class="star">&starf;</span>
-            <span class="fl-name">Poker Room</span>
+            <span class="fl-name">The Jovi Saloon</span>
             <span class="est">&mdash; Est. 1876 &mdash;</span>
           </div>
           <div class="deck"></div>

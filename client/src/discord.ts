@@ -94,7 +94,7 @@ async function bootDiscord(clientId: string): Promise<Boot> {
   return {
     embedded: true,
     roomId,
-    roomName: 'Poker Room',
+    roomName: 'The Jovi Saloon',
     accessToken,
     base,
     identity: {
@@ -133,7 +133,7 @@ async function bootLocal(): Promise<Boot> {
   return {
     embedded: false,
     roomId: `local:${roomId}`,
-    roomName: 'Poker Room',
+    roomName: 'The Jovi Saloon',
     base: '',
     identity: { userId, name, avatar: null, avatarId: savedAvatarId() },
   };
