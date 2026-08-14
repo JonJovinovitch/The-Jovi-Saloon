@@ -15,6 +15,8 @@ export interface Stakes {
   smallBlind: number;
   bigBlind: number;
   ante: number;
+  /** In later tournament levels, the big blind also posts this ante. */
+  bigBlindAnte: number;
   bringIn: number;
   /** Fixed limit only. */
   smallBet: number;
@@ -69,6 +71,7 @@ export const DEFAULT_STAKES: Stakes = {
   smallBlind: 5,
   bigBlind: 10,
   ante: 0,
+  bigBlindAnte: 0,
   bringIn: 5,
   smallBet: 10,
   bigBet: 20,
@@ -109,6 +112,10 @@ export interface SeatView {
   folded: boolean;
   allIn: boolean;
   sittingOut: boolean;
+  /** Cash players explicitly opt in before a hand begins. */
+  ready: boolean;
+  /** Tournament player left their seat and is forced in until their chips are gone. */
+  autoFold: boolean;
   disconnected: boolean;
   isBot: boolean;
   /** null entries are face-down cards this viewer may not see. */
@@ -262,7 +269,7 @@ export type ClientMessage =
   | { t: 'avatar'; avatarId: string }
   | { t: 'sit'; seat: number; tableId?: string }
   | { t: 'stand' }
-  | { t: 'sitout'; on: boolean }
+  | { t: 'ready'; on: boolean }
   | { t: 'rebuy'; amount: number }
   | { t: 'act'; action: ActionType; amount?: number }
   | { t: 'discard'; cards: Card[] }

@@ -255,6 +255,17 @@ export class HandEngine {
     this.commit(bbPlayer, bb);
     this.emit({ t: 'post', seat: bbPlayer.seat, amount: bb, kind: 'bb' });
 
+    // Modern live tournament structures commonly introduce a big-blind ante
+    // in later levels. It is a separate forced contribution, not a raise.
+    if (this.stakes.bigBlindAnte > 0) {
+      const ante = Math.min(this.stakes.bigBlindAnte, bbPlayer.stack);
+      if (ante > 0) {
+        this.commit(bbPlayer, ante);
+        this.emit({ t: 'post', seat: bbPlayer.seat, amount: ante, kind: 'ante' });
+        bbPlayer.bet -= ante;
+      }
+    }
+
     // A blind that went all-in for less does not lower the price; the
     // uncalled remainder comes back out of the side pot at showdown.
     this.currentBet = Math.max(this.stakes.bigBlind, sb, bb);

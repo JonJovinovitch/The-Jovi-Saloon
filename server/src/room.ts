@@ -218,6 +218,8 @@ export class Room {
       avatarId: m.avatarId,
       stack: this.config.startingStack,
       sittingOut: false,
+      ready: this.config.format === 'tournament' || m.isBot,
+      autoFold: false,
       disconnected: !m.connected,
       isBot: m.isBot,
     });
@@ -231,8 +233,18 @@ export class Room {
   stand(userId: string): void {
     const t = this.tableOf(userId);
     if (!t) return;
+    if (this.config.format === 'tournament') {
+      t.autoFoldOut(userId);
+      this.touch();
+      return;
+    }
     t.stand(userId);
     this.rebalance();
+    this.touch();
+  }
+
+  setReady(userId: string, on: boolean): void {
+    this.tableOf(userId)?.setReady(userId, on);
     this.touch();
   }
 
@@ -367,6 +379,9 @@ export class Room {
     next.tournament.maxPlayers = Math.max(2, Math.min(36, Math.floor(next.tournament.maxPlayers)));
     if (next.format === 'tournament') {
       next.mode = 'fixed'; next.gameId = 'nlhe'; next.allowRebuy = false; next.autoScale = true; next.autoDeal = false; next.seatCap = Math.min(9, next.seatCap);
+    } else {
+      // Cash hands begin when two seated players have explicitly marked ready.
+      next.autoDeal = true;
     }
     if (next.mode === 'fixed') {
       try {
@@ -431,6 +446,7 @@ export class Room {
     this.config.stakes.smallBlind = Math.max(1, niceChip(bigBlind / 2));
     this.config.stakes.smallBet = bigBlind;
     this.config.stakes.bigBet = bigBlind * 2;
+    this.config.stakes.bigBlindAnte = level >= 5 ? bigBlind : 0;
   }
 
   private pruneTournamentBusted(): void {

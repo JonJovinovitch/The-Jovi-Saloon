@@ -135,7 +135,7 @@ export class TableRenderer {
     // Reserve room for the action bar. The hero is deliberately pulled up so
     // their cards and nameplate never disappear behind the bottom controls.
     const y = 51 + 41 * Math.sin(angle);
-    return { x: 50 + 45 * Math.cos(angle), y: i === 0 ? Math.min(y, 83) : y };
+    return { x: 50 + 45 * Math.cos(angle), y: i === 0 ? Math.min(y, 68) : y };
   }
 
   /** Where a player's committed chips sit: pulled in toward the pot. */

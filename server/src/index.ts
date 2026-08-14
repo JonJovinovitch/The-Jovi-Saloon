@@ -325,8 +325,8 @@ wss.on('connection', (ws) => {
       case 'avatar':
         fail(room.setAvatar(userId, String(msg.avatarId)));
         break;
-      case 'sitout':
-        room.tableOf(userId)?.setSittingOut(userId, !!msg.on);
+      case 'ready':
+        room.setReady(userId, !!msg.on);
         break;
       case 'rebuy':
         atTable((t) => t.rebuy(userId, Number(msg.amount) || 0));

@@ -29,6 +29,8 @@ export interface Seat {
   avatarId: string;
   stack: number;
   sittingOut: boolean;
+  ready: boolean;
+  autoFold: boolean;
   disconnected: boolean;
   isBot: boolean;
   /** Set while the player is out of chips and has not rebought. */
@@ -105,7 +107,7 @@ export class Table {
 
   /** Seats that will be dealt in on the next hand. */
   private readySeats(): Seat[] {
-    return this.occupied().filter((s) => !s.sittingOut && s.stack > 0);
+    return this.occupied().filter((s) => s.stack > 0 && (this.config.format === 'tournament' ? !s.sittingOut : s.ready));
   }
 
   sit(seat: number, player: Omit<Seat, 'seat' | 'busted'>): string | null {
@@ -136,6 +138,25 @@ export class Table {
     if (on && this.engine && !this.engine.finished) this.engine.forfeit(s.seat);
     this.flush();
     if (!on) this.scheduleNextHand(QUICK_PAUSE_MS);
+    this.onUpdate(this);
+  }
+
+  setReady(userId: string, on: boolean): void {
+    const s = this.findSeatOf(userId);
+    if (!s || this.config.format === 'tournament') return;
+    s.ready = on;
+    if (on) this.scheduleNextHand(QUICK_PAUSE_MS);
+    this.onUpdate(this);
+  }
+
+  /** Tournament departure: remain in the blind rotation and auto-fold every hand. */
+  autoFoldOut(userId: string): void {
+    const s = this.findSeatOf(userId);
+    if (!s || this.config.format !== 'tournament') return;
+    s.autoFold = true;
+    s.ready = true;
+    if (this.engine && !this.engine.finished) this.engine.forfeit(s.seat);
+    this.flush();
     this.onUpdate(this);
   }
 
@@ -363,6 +384,17 @@ export class Table {
     if (!e || !e.waiting) return;
     const seats = e.waiting.kind === 'discard' ? e.waiting.seats : [e.waiting.seat];
     const botSeats = seats.filter((n) => this.seats[n]?.isBot);
+    if (e.waiting.kind === 'act' && this.seats[e.waiting.seat]?.autoFold) {
+      const autoFoldSeat = e.waiting.seat;
+      this.botTimer = setTimeout(() => {
+        this.botTimer = null;
+        if (this.engine && !this.engine.finished && this.engine.waiting?.kind === 'act' && this.engine.waiting.seat === autoFoldSeat) {
+          this.engine.forfeit(autoFoldSeat);
+          this.flush();
+        }
+      }, 350);
+      return;
+    }
     if (botSeats.length === 0) return;
     const delay = BOT_MIN_MS + Math.random() * (BOT_MAX_MS - BOT_MIN_MS);
     if (this.botTimer) clearTimeout(this.botTimer);
@@ -515,11 +547,13 @@ export class Table {
         folded: p?.folded ?? false,
         allIn: p?.allIn ?? false,
         sittingOut: s.sittingOut,
+        ready: s.ready,
+        autoFold: s.autoFold,
         disconnected: s.disconnected,
         isBot: s.isBot,
         cards: p ? this.cardsFor(p, viewerSeat, showdownReveal) : [],
         lastDrawCount: p?.lastDrawCount ?? null,
-        lastAction: p?.lastAction ?? (s.sittingOut ? 'Sitting out' : s.busted ? 'Out of chips' : null),
+        lastAction: p?.lastAction ?? (s.autoFold ? 'Away — auto-folding' : s.sittingOut ? 'Sitting out' : !s.ready && this.config.format === 'cash' ? 'Not ready' : s.busted ? 'Out of chips' : null),
         handDesc: showdownReveal ? p?.hiDesc ?? null : null,
         lowDesc: showdownReveal ? p?.loDesc ?? null : null,
         bestCards: showdownReveal ? p?.hi?.cards ?? null : null,

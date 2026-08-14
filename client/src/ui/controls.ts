@@ -14,10 +14,9 @@ import { fmtChips } from './cards.ts';
 export interface ControlCallbacks {
   onAct(action: ActionType, amount?: number): void;
   onDiscard(cards: Card[]): void;
-  onSitOut(on: boolean): void;
+  onReady(on: boolean): void;
   onStand(): void;
   onRebuy(): void;
-  onDeal(): void;
   onSitPrompt(): void;
 }
 
@@ -51,7 +50,7 @@ export class Controls {
     e.preventDefault();
   }
 
-  render(view: TableView, you: YouView, selected: Set<Card>, isHost: boolean): void {
+  render(view: TableView, you: YouView, selected: Set<Card>, _isHost: boolean, isTournament: boolean): void {
     this.lastLegal = you.legal;
     this.statusEl.innerHTML = this.status(view, you);
 
@@ -63,7 +62,7 @@ export class Controls {
       this.actionsEl.replaceChildren();
       return;
     }
-    return this.renderIdle(view, you, isHost);
+    return this.renderIdle(view, you, isTournament);
   }
 
   private status(view: TableView, you: YouView): string {
@@ -220,7 +219,7 @@ export class Controls {
     this.actionsEl.replaceChildren(...nodes);
   }
 
-  private renderIdle(view: TableView, you: YouView, isHost: boolean): void {
+  private renderIdle(view: TableView, you: YouView, isTournament: boolean): void {
     const nodes: HTMLElement[] = [];
     const me = view.seats.find((s) => s.seat === you.seat);
 
@@ -230,18 +229,15 @@ export class Controls {
       if (me && me.stack <= 0) {
         nodes.push(this.button('raise', 'Rebuy', () => this.cb.onRebuy()));
       }
-      const out = !!me?.sittingOut;
-      nodes.push(
-        this.button('check', out ? "I'm back" : 'Sit out next hand', () => this.cb.onSitOut(!out)),
-      );
+      if (view.state === 'waiting' && !me?.autoFold && !isTournament) {
+        nodes.push(this.button('check', me?.ready ? 'Ready — waiting' : 'Ready to play', () => this.cb.onReady(!me?.ready)));
+      }
       nodes.push(this.button('fold', 'Stand up', () => this.cb.onStand()));
-    }
-    if (isHost && view.state === 'waiting') {
-      nodes.push(this.button('raise', 'Deal', () => this.cb.onDeal()));
     }
     this.actionsEl.replaceChildren(...nodes);
   }
 }
+
 
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));

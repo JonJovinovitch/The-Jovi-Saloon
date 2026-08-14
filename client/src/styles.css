@@ -266,7 +266,8 @@ h3,
   min-height: 0;
   display: grid;
   place-items: center;
-  padding: 2vmin;
+  /* Keep oversized hero portraits inside the table area, clear of the action bar. */
+  padding: 2vmin 2vmin 16vmin;
   /* Lamp overhead, dark corners, warm floorboards. */
   background:
     radial-gradient(70% 50% at 50% -6%, rgba(255, 205, 130, 0.16), transparent 70%),
@@ -769,7 +770,11 @@ h3,
 }
 
 .card .face {
-  background: linear-gradient(160deg, #fdf8ec, #e8dfcb);
+  /* Ivory stock with a subtle printed-paper grain: old western, still a
+     familiar regulation deck rather than a novelty card. */
+  background:
+    repeating-linear-gradient(0deg, rgba(86, 62, 35, 0.035) 0 1px, transparent 1px 3px),
+    linear-gradient(160deg, #fffaf0, #e7dcc5);
   color: #221a12;
   transform: rotateY(180deg);
   display: flex;
@@ -777,7 +782,8 @@ h3,
   justify-content: space-between;
   padding: 0.5vmin 0.6vmin;
   overflow: hidden;
-  border: 1px solid rgba(60, 40, 20, 0.3);
+  border: 1px solid rgba(60, 40, 20, 0.5);
+  box-shadow: inset 0 0 0 0.22vmin rgba(111, 77, 39, 0.18), 0 0.5vmin 1.2vmin rgba(0, 0, 0, 0.6);
 }
 
 .card.red .face {
@@ -790,6 +796,11 @@ h3,
   line-height: 0.92;
   font-size: calc(var(--card-w) * 0.34);
   letter-spacing: -0.02em;
+}
+
+.card[data-rank='10'] .corner .r {
+  font-size: calc(var(--card-w) * 0.29);
+  letter-spacing: -0.07em;
 }
 
 .card .corner .s {

@@ -23,14 +23,18 @@ export function setCardFace(el: HTMLElement, card: Card | null): void {
     return;
   }
   const r = RANK_CHARS[rankOf(card)];
+  // "T" is a useful compact notation for code and hand histories, but real
+  // playing cards print the rank as 10.
+  const displayRank = r === 'T' ? '10' : r;
   const s = SUIT_SYMBOLS[suitOf(card)];
   const red = suitOf(card) === 1 || suitOf(card) === 2;
   el.classList.toggle('red', red);
-  for (const node of el.querySelectorAll<HTMLElement>('.corner .r')) node.textContent = r;
+  for (const node of el.querySelectorAll<HTMLElement>('.corner .r')) node.textContent = displayRank;
   for (const node of el.querySelectorAll<HTMLElement>('.corner .s')) node.textContent = s;
   const pip = el.querySelector<HTMLElement>('.pip');
   if (pip) pip.textContent = s;
   el.dataset.card = String(card);
+  el.dataset.rank = displayRank;
   el.classList.add('faceup');
 }
 

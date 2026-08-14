@@ -113,7 +113,7 @@ const controls = new Controls({
     send({ t: 'discard', cards });
     renderer.selected.clear();
   },
-  onSitOut: (on) => send({ t: 'sitout', on }),
+  onReady: (on) => send({ t: 'ready', on }),
   onStand: () => send({ t: 'stand' }),
   onRebuy: () => {
     const suggested = room?.config.startingStack ?? 1000;
@@ -129,7 +129,6 @@ const controls = new Controls({
       if (amount > 0) send({ t: 'rebuy', amount });
     });
   },
-  onDeal: () => send({ t: 'start' }),
   onSitPrompt: () => toast('Click an open seat at the table to sit down.'),
 });
 
@@ -191,14 +190,14 @@ function paint(): void {
   if (!table || !you) return;
 
   renderer.render(table, you);
-  controls.render(table, you, renderer.selected, room?.hostId === myId);
+  controls.render(table, you, renderer.selected, room?.hostId === myId, room?.config.format === 'tournament');
 
   $('game-tag').textContent = table.gameName;
   const s = table.stakes;
   $('stakes-tag').textContent =
     table.limit === 'fl'
       ? `${fmtChips(s.smallBet)} / ${fmtChips(s.bigBet)} limit`
-      : `${fmtChips(s.smallBlind)} / ${fmtChips(s.bigBlind)}`;
+      : `${fmtChips(s.smallBlind)} / ${fmtChips(s.bigBlind)}${s.bigBlindAnte ? ` • BBA ${fmtChips(s.bigBlindAnte)}` : ''}`;
   renderTournamentClock();
 
   // Table tabs only earn their space once the room has more than one.
@@ -274,8 +273,8 @@ function centerPrompt(): string | null {
       return `<h3>Tournament setup — ${tournament.entries}/${tournament.maxPlayers} seated</h3><p>1. Set blinds and buy-in in Settings. 2. Tap Invite and share the code. 3. Start when everyone has a seat.${prizes}</p>${
         room?.hostId === myId ? '<p><button class="btn gold" data-act="start-tournament">Start tournament</button></p>' : '<p>Waiting for the host to start the tournament.</p>'}`;
     }
-    return `<h3>${table.message}</h3>${
-      room?.hostId === myId ? '<p><button class="btn primary" data-act="deal">Deal</button> <button class="btn" data-act="bot">Add a practice bot</button></p>' : ''
+    return `<h3>${table.message}</h3><p>${you.seat === null ? 'Take a seat, then select Ready to play.' : 'Select Ready to play. A cash hand starts automatically once two or more players are ready.'}</p>${
+      room?.hostId === myId ? '<p><button class="btn" data-act="bot">Add a practice bot</button></p>' : ''
     }`;
   }
   return null;
@@ -284,7 +283,6 @@ function centerPrompt(): string | null {
 function wirePrompt(): void {
   for (const btn of renderer.promptRoot.querySelectorAll<HTMLElement>('[data-act]')) {
     btn.onclick = () => {
-      if (btn.dataset.act === 'deal') send({ t: 'start' });
       if (btn.dataset.act === 'bot') send({ t: 'add-bot', count: 1 });
       if (btn.dataset.act === 'start-tournament') send({ t: 'start-tournament' });
       if (btn.dataset.act === 'rules') howto.open();
