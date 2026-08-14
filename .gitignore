@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.vite/
+*.log
+.DS_Store
+Thumbs.db
+
+# Anything that could hold a credential. .env.example is the only
+# environment file that belongs in the repo.
+.env
+.env.*
+!.env.example
+Secrets.txt
+secrets.txt
+*secret*
+*.pem
+*.key
+*.p12
+credentials.json

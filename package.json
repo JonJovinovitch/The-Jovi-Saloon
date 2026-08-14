@@ -1,0 +1,31 @@
+{
+  "name": "poker-room",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A Discord Activity poker room — dealer's choice, multi-table, with built-in How To Play.",
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c cyan,magenta \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm run dev --workspace server",
+    "dev:client": "npm run dev --workspace client",
+    "build": "npm run build --workspace client",
+    "start": "npm run start --workspace server",
+    "play": "npm run build --workspace client && npm run start --workspace server",
+    "tunnel": "npx --yes cloudflared tunnel --url http://localhost:3001",
+    "check": "node scripts/preflight.mjs",
+    "test": "npm run test --workspace shared",
+    "typecheck": "tsc -p shared -noEmit && tsc -p server --noEmit && tsc -p client --noEmit"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
