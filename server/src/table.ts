@@ -409,7 +409,7 @@ export class Table {
     if (this.engine && !this.engine.finished) return;
     this.nextHandTimer = setTimeout(() => {
       this.nextHandTimer = null;
-      if (!this.config.autoDeal && this.handId > 0) {
+      if (!this.config.autoDeal) {
         this.state = 'waiting';
         this.message = 'Press Deal to start the next hand';
         this.onUpdate(this);

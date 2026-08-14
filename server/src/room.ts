@@ -12,7 +12,7 @@ import { Table, type Seat } from './table.ts';
 import { nextBotName } from './bots.ts';
 import { getGame } from '../../shared/src/games.ts';
 import { isAvatarId, pickFreeAvatar } from '../../shared/src/avatars.ts';
-import type { Identity, RoomConfig, RoomMember, RoomView } from '../../shared/src/protocol.ts';
+import type { Identity, RoomConfig, RoomMember, RoomView, TournamentView } from '../../shared/src/protocol.ts';
 
 export interface Member {
   userId: string;
@@ -36,6 +36,11 @@ export class Room {
   members = new Map<string, Member>();
   tables: Table[] = [];
   notice: string | null = null;
+  private tournament: TournamentView | null = null;
+  private tournamentTimer: ReturnType<typeof setTimeout> | null = null;
+  private tournamentEntries: string[] = [];
+  private eliminated: string[] = [];
+  private pruningTournament = false;
 
   /** Fired when anything the clients can see changed. */
   onUpdate: (room: Room) => void = () => {};
@@ -141,6 +146,7 @@ export class Room {
   }
 
   private handleTableUpdate(t: Table): void {
+    this.pruneTournamentBusted();
     if (this.rebalancePending && this.tableIsIdle(t)) {
       // Retry a move that was blocked by a hand in progress.
       queueMicrotask(() => this.rebalance());
@@ -188,6 +194,8 @@ export class Room {
     const m = this.members.get(userId);
     if (!m) return 'unknown player';
     if (this.tableOf(userId)) return 'you are already seated';
+    if (this.config.format === 'tournament' && this.tournament?.state !== 'setup') return 'this tournament has already started';
+    if (this.config.format === 'tournament' && this.seatedCount() >= this.config.tournament.maxPlayers) return 'this tournament is full';
 
     let table = this.tableById(tableId ?? m.viewTableId ?? null);
     if (!table || table.firstOpenSeat() === null) {
@@ -345,11 +353,20 @@ export class Room {
 
   applyConfig(patch: Partial<RoomConfig>): string | null {
     const next: RoomConfig = { ...this.config, ...patch, stakes: { ...this.config.stakes, ...patch.stakes } };
+    next.format = next.format === 'tournament' ? 'tournament' : 'cash';
+    next.tournament = { ...this.config.tournament, ...patch.tournament };
     next.seatCap = Math.max(2, Math.min(10, Math.floor(next.seatCap)));
     next.startingStack = Math.max(1, Math.floor(next.startingStack));
     next.actionTimeSec = Math.max(8, Math.min(120, Math.floor(next.actionTimeSec)));
     next.stakes.bigBlind = Math.max(2, Math.floor(next.stakes.bigBlind));
     next.stakes.smallBlind = Math.max(1, Math.min(next.stakes.bigBlind - 1, Math.floor(next.stakes.smallBlind)));
+    next.tournament.buyIn = Math.max(0, Math.floor(next.tournament.buyIn));
+    next.tournament.blindIntervalMin = Math.max(1, Math.min(60, Math.floor(next.tournament.blindIntervalMin)));
+    next.tournament.blindScalePercent = Math.max(10, Math.min(200, Math.floor(next.tournament.blindScalePercent)));
+    next.tournament.maxPlayers = Math.max(2, Math.min(36, Math.floor(next.tournament.maxPlayers)));
+    if (next.format === 'tournament') {
+      next.mode = 'fixed'; next.gameId = 'nlhe'; next.allowRebuy = false; next.autoScale = true; next.autoDeal = false; next.seatCap = Math.min(9, next.seatCap);
+    }
     if (next.mode === 'fixed') {
       try {
         getGame(next.gameId);
@@ -362,6 +379,72 @@ export class Room {
     this.rebalance();
     this.touch();
     return null;
+  }
+
+  startTournament(): string | null {
+    if (this.config.format !== 'tournament') return 'switch the room to Tournament first';
+    if (this.tournament?.state === 'running') return 'the tournament is already running';
+    const entries = this.tables.flatMap((t) => t.occupied()).filter((s) => !s.isBot);
+    if (entries.length < 2) return 'at least two players must take a seat before starting';
+    const pool = entries.length * this.config.tournament.buyIn;
+    this.config.autoDeal = true;
+    for (const table of this.tables) table.applyConfig(this.config);
+    this.tournament = { state: 'running', level: 1, nextLevelAt: Date.now() + this.config.tournament.blindIntervalMin * 60_000,
+      entries: entries.length, maxPlayers: this.config.tournament.maxPlayers, prizePool: pool, payouts: tournamentPayouts(entries.length, pool), winnerName: null };
+    this.tournamentEntries = entries.map((s) => s.userId);
+    this.eliminated = [];
+    this.notice = `Tournament started — Level 1: ${this.config.stakes.smallBlind}/${this.config.stakes.bigBlind}`;
+    this.armTournamentClock();
+    for (const t of this.tables) t.forceStart();
+    this.touch();
+    return null;
+  }
+
+  private armTournamentClock(): void {
+    if (this.tournamentTimer) clearTimeout(this.tournamentTimer);
+    const next = this.tournament?.nextLevelAt;
+    if (!next) return;
+    this.tournamentTimer = setTimeout(() => {
+      if (!this.tournament || this.tournament.state !== 'running') return;
+      this.tournament.level++;
+      const scale = 1 + this.config.tournament.blindScalePercent / 100;
+      this.config.stakes.smallBlind = Math.max(1, Math.round(this.config.stakes.smallBlind * scale));
+      this.config.stakes.bigBlind = Math.max(this.config.stakes.smallBlind + 1, Math.round(this.config.stakes.bigBlind * scale));
+      this.config.stakes.smallBet = this.config.stakes.bigBlind; this.config.stakes.bigBet = this.config.stakes.bigBlind * 2;
+      this.tournament.nextLevelAt = Date.now() + this.config.tournament.blindIntervalMin * 60_000;
+      for (const t of this.tables) t.applyConfig(this.config);
+      this.notice = `Blinds are up — Level ${this.tournament.level}: ${this.config.stakes.smallBlind}/${this.config.stakes.bigBlind}`;
+      this.armTournamentClock(); this.touch();
+    }, Math.max(0, next - Date.now()));
+  }
+
+  private pruneTournamentBusted(): void {
+    if (this.pruningTournament || this.config.format !== 'tournament' || this.tournament?.state !== 'running') return;
+    this.pruningTournament = true;
+    let changed = false;
+    try {
+      for (const table of this.tables) {
+        if (!this.tableIsIdle(table)) continue;
+        for (const seat of table.occupied().filter((s) => s.busted || s.stack <= 0)) {
+          if (!this.eliminated.includes(seat.userId)) this.eliminated.unshift(seat.userId);
+          table.stand(seat.userId);
+          changed = true;
+        }
+      }
+      const live = this.tables.flatMap((table) => table.occupied()).filter((seat) => !seat.isBot);
+      if (live.length === 1 && this.tournamentEntries.length > 1) {
+        this.tournament.state = 'complete';
+        this.tournament.nextLevelAt = null;
+        this.tournament.winnerName = live[0].name;
+        this.notice = `${live[0].name} wins the tournament!`;
+        if (this.tournamentTimer) clearTimeout(this.tournamentTimer);
+        this.tournamentTimer = null;
+        changed = true;
+      }
+    } finally {
+      this.pruningTournament = false;
+    }
+    if (changed) queueMicrotask(() => this.rebalance());
   }
 
   addBots(count: number): void {
@@ -427,6 +510,12 @@ export class Room {
         handId: t.handId,
       })),
       notice: this.notice,
+      inviteCode: this.id.replace(/^local:/, '').replace(/^discord:[^:]+:[^:]+:/, ''),
+      tournament: this.tournament ?? (this.config.format === 'tournament' ? {
+        state: 'setup', level: 1, nextLevelAt: null, entries: this.seatedCount(), maxPlayers: this.config.tournament.maxPlayers,
+        prizePool: this.seatedCount() * this.config.tournament.buyIn,
+        payouts: tournamentPayouts(this.seatedCount(), this.seatedCount() * this.config.tournament.buyIn), winnerName: null,
+      } : null),
     };
     return view;
   }
@@ -441,7 +530,14 @@ export class Room {
   }
 
   dispose(): void {
+    if (this.tournamentTimer) clearTimeout(this.tournamentTimer);
     for (const t of this.tables) t.dispose();
     this.tables = [];
   }
+}
+
+function tournamentPayouts(entries: number, pool: number): { place: number; amount: number }[] {
+  if (entries < 2 || pool <= 0) return [];
+  const shares = entries <= 3 ? [1] : entries <= 6 ? [0.65, 0.35] : entries <= 10 ? [0.5, 0.3, 0.2] : entries <= 18 ? [0.4, 0.25, 0.18, 0.1, 0.07] : [0.35, 0.22, 0.15, 0.1, 0.07, 0.05, 0.035, 0.025];
+  return shares.map((share, i) => ({ place: i + 1, amount: Math.round(pool * share * 100) / 100 }));
 }

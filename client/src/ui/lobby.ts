@@ -66,7 +66,9 @@ function checkbox(value: boolean): HTMLInputElement {
 
 export function openSettings(room: RoomView, onSave: (patch: Partial<RoomConfig>) => void): void {
   const c = room.config;
-  const { body, close } = modal('Room settings');
+  const { body, close } = modal('Set up your room');
+
+  const format = select([['cash', 'Cash game — free play'], ['tournament', 'Tournament — scheduled blinds']], c.format);
 
   const mode = select(
     [
@@ -87,17 +89,33 @@ export function openSettings(room: RoomView, onSave: (patch: Partial<RoomConfig>
   const autoScale = checkbox(c.autoScale);
   const autoDeal = checkbox(c.autoDeal);
   const rebuy = checkbox(c.allowRebuy);
+  const buyIn = numberInput(c.tournament.buyIn, 0);
+  const interval = numberInput(c.tournament.blindIntervalMin, 1);
+  const scaling = numberInput(c.tournament.blindScalePercent, 10);
+  const maxPlayers = numberInput(c.tournament.maxPlayers, 2);
+  maxPlayers.max = '36';
+  const tournamentRows = [field('Buy-in ($)', buyIn, 'Used to show a suggested prize pool; chips remain free play.'), field('Blind level (minutes)', interval), field('Blind increase (%)', scaling, '50% turns 5/10 into about 8/15.'), field('Player limit', maxPlayers, 'Up to 36 players across nine-seat tables.')];
 
   const gameRow = field('Game', game);
   const mixRow = field('Rotation', mix, 'The game changes every orbit.');
+  const modeRow = field('Format', mode, "Dealer's choice lets whoever has the button pick the next game.");
   const syncMode = (): void => {
     gameRow.hidden = mode.value !== 'fixed';
     mixRow.hidden = mode.value !== 'mix';
   };
   mode.addEventListener('change', syncMode);
+  const syncFormat = (): void => {
+    const tournament = format.value === 'tournament';
+    for (const row of tournamentRows) row.hidden = !tournament;
+    modeRow.hidden = tournament;
+    gameRow.hidden = tournament || mode.value !== 'fixed';
+    mixRow.hidden = tournament || mode.value !== 'mix';
+  };
+  format.addEventListener('change', syncFormat);
 
   body.append(
-    field('Format', mode, "Dealer's choice lets whoever has the button pick the next game."),
+    field('Choose a room type', format, '1. Choose cash games for free play, or tournament for scheduled blind levels and prizes.'),
+    modeRow,
     gameRow,
     mixRow,
     field('Small blind', sb),
@@ -108,8 +126,10 @@ export function openSettings(room: RoomView, onSave: (patch: Partial<RoomConfig>
     field('Auto-scale tables', autoScale),
     field('Deal automatically', autoDeal),
     field('Allow rebuys', rebuy),
+    ...tournamentRows,
   );
   syncMode();
+  syncFormat();
 
   const actions = document.createElement('div');
   actions.className = 'modal-actions';
@@ -122,6 +142,7 @@ export function openSettings(room: RoomView, onSave: (patch: Partial<RoomConfig>
   save.textContent = 'Save';
   save.addEventListener('click', () => {
     onSave({
+      format: format.value as RoomConfig['format'],
       mode: mode.value as RoomConfig['mode'],
       gameId: game.value,
       mixId: mix.value,
@@ -138,6 +159,7 @@ export function openSettings(room: RoomView, onSave: (patch: Partial<RoomConfig>
       autoScale: autoScale.checked,
       autoDeal: autoDeal.checked,
       allowRebuy: rebuy.checked,
+      tournament: { buyIn: Number(buyIn.value), blindIntervalMin: Number(interval.value), blindScalePercent: Number(scaling.value), maxPlayers: Number(maxPlayers.value) },
     });
     close();
   });

@@ -121,8 +121,10 @@ async function bootDiscord(clientId: string): Promise<Boot> {
   const auth = await sdk.commands.authenticate({ access_token: accessToken });
   const user = auth.user;
 
-  // One room per voice channel, so two channels can run separate games.
-  const roomId = `discord:${sdk.guildId ?? 'dm'}:${sdk.channelId ?? sdk.instanceId}`;
+  // A shared code creates a private room inside the same Discord channel;
+  // without one, retain the convenient one-room-per-channel default.
+  const roomCode = new URLSearchParams(location.search).get('room')?.replace(/[^a-z0-9_-]/gi, '').slice(0, 32);
+  const roomId = `discord:${sdk.guildId ?? 'dm'}:${sdk.channelId ?? sdk.instanceId}${roomCode ? `:${roomCode}` : ''}`;
 
   return {
     embedded: true,

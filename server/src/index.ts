@@ -348,6 +348,10 @@ wss.on('connection', (ws) => {
         if (!room.isHost(userId)) fail('only the host can deal');
         else for (const t of room.tables) t.forceStart();
         break;
+      case 'start-tournament':
+        if (!room.isHost(userId)) fail('only the host can start the tournament');
+        else fail(room.startTournament());
+        break;
       case 'add-bot':
         if (!room.isHost(userId)) fail('only the host can add practice bots');
         else room.addBots(Math.max(1, Math.min(8, Math.floor(msg.count ?? 1))));

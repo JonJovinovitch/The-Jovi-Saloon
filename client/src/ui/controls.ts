@@ -57,6 +57,12 @@ export class Controls {
 
     if (you.drawPrompt) return this.renderDraw(you, selected);
     if (you.legal) return this.renderBetting(view, you);
+    // A player who is waiting on someone else must not see an action bar that
+    // resembles their turn. Between-hand controls return when the table is idle.
+    if (view.state === 'running' || view.state === 'showdown' || view.state === 'choosing') {
+      this.actionsEl.replaceChildren();
+      return;
+    }
     return this.renderIdle(view, you, isHost);
   }
 

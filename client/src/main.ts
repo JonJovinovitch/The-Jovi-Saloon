@@ -84,6 +84,7 @@ let net!: Net;
 let closeGamePicker: (() => void) | null = null;
 let hadTurn = false;
 let welcomeTimer = 0;
+let tournamentTimer = 0;
 
 const howto = new HowToDrawer();
 document.body.appendChild(howto.root);
@@ -142,12 +143,14 @@ topbar.innerHTML = `
   <div class="brand"><span class="pip">&starf;</span><span>The Jovi Saloon</span></div>
   <div class="chip-tag game" id="game-tag">—</div>
   <div class="chip-tag" id="stakes-tag"></div>
+  <div class="chip-tag tournament-clock" id="tournament-clock" hidden></div>
   <div class="tablepicker" id="tables"></div>
   <div class="spacer"></div>
   <div class="chip-tag" id="conn">saddling up…</div>
   <button class="btn char" id="character" title="Change character"><span class="portrait sm" id="my-portrait"></span><span class="char-name">Character</span></button>
   <button class="btn gold" id="rules">How to play</button>
   <button class="btn" id="people">Players</button>
+  <button class="btn" id="invite">Invite</button>
   <button class="btn" id="bots" hidden>+ Bot</button>
   <button class="btn" id="settings" hidden>Settings</button>
   <button class="btn ghost" id="sound" title="Sound">&#128266;</button>`;
@@ -159,6 +162,13 @@ const $ = <T extends HTMLElement>(id: string): T => topbar.querySelector(`#${id}
 $('character').addEventListener('click', () => pickCharacter());
 $('rules').addEventListener('click', () => howto.toggle(table?.gameId));
 $('people').addEventListener('click', () => room && openRoster(room));
+$('invite').addEventListener('click', async () => {
+  if (!room) return;
+  const url = new URL(location.href);
+  url.searchParams.set('room', room.inviteCode);
+  try { await navigator.clipboard.writeText(url.toString()); toast(`Invite link copied — code: ${room.inviteCode}`, 'good'); }
+  catch { toast(`Room code: ${room.inviteCode}. Share this page's link.`, 'good'); }
+});
 $('settings').addEventListener('click', () => room && openSettings(room, (patch) => send({ t: 'config', config: patch })));
 $('bots').addEventListener('click', () => send({ t: 'add-bot', count: 1 }));
 $('sound').addEventListener('click', () => {
@@ -189,6 +199,7 @@ function paint(): void {
     table.limit === 'fl'
       ? `${fmtChips(s.smallBet)} / ${fmtChips(s.bigBet)} limit`
       : `${fmtChips(s.smallBlind)} / ${fmtChips(s.bigBlind)}`;
+  renderTournamentClock();
 
   // Table tabs only earn their space once the room has more than one.
   const tabs = $('tables');
@@ -228,6 +239,23 @@ function paint(): void {
   hadTurn = myTurn;
 }
 
+function renderTournamentClock(): void {
+  window.clearTimeout(tournamentTimer);
+  const el = $('tournament-clock');
+  const t = room?.tournament;
+  if (!t) { el.hidden = true; return; }
+  el.hidden = false;
+  if (t.state === 'setup') {
+    el.textContent = `Tournament setup: ${t.entries}/${t.maxPlayers}`;
+    return;
+  }
+  if (t.state === 'complete') { el.textContent = `${t.winnerName ?? 'Tournament'} wins`; return; }
+  const left = Math.max(0, (t.nextLevelAt ?? Date.now()) - Date.now());
+  const min = Math.floor(left / 60000); const sec = Math.floor(left / 1000) % 60;
+  el.textContent = `Level ${t.level} • blinds in ${min}:${String(sec).padStart(2, '0')}`;
+  tournamentTimer = window.setTimeout(renderTournamentClock, 1000);
+}
+
 function centerPrompt(): string | null {
   if (!table || !you) return null;
   if (table.state === 'choosing' && you.seat !== table.choosingSeat) {
@@ -239,6 +267,12 @@ function centerPrompt(): string | null {
     if (you.seat === null) {
       return `<h3>Pull up a chair</h3><p>Click an open seat to join. ${seated} seated so far.</p>
         <p><button class="btn gold" data-act="rules">Learn a game first</button></p>`;
+    }
+    const tournament = room?.tournament;
+    if (tournament?.state === 'setup') {
+      const prizes = tournament.payouts.length ? ` Suggested payouts: ${tournament.payouts.map((p) => `${p.place}${p.place === 1 ? 'st' : p.place === 2 ? 'nd' : p.place === 3 ? 'rd' : 'th'} $${p.amount}`).join(' • ')}.` : '';
+      return `<h3>Tournament setup — ${tournament.entries}/${tournament.maxPlayers} seated</h3><p>1. Set blinds and buy-in in Settings. 2. Tap Invite and share the code. 3. Start when everyone has a seat.${prizes}</p>${
+        room?.hostId === myId ? '<p><button class="btn gold" data-act="start-tournament">Start tournament</button></p>' : '<p>Waiting for the host to start the tournament.</p>'}`;
     }
     return `<h3>${table.message}</h3>${
       room?.hostId === myId ? '<p><button class="btn primary" data-act="deal">Deal</button> <button class="btn" data-act="bot">Add a practice bot</button></p>' : ''
@@ -252,6 +286,7 @@ function wirePrompt(): void {
     btn.onclick = () => {
       if (btn.dataset.act === 'deal') send({ t: 'start' });
       if (btn.dataset.act === 'bot') send({ t: 'add-bot', count: 1 });
+      if (btn.dataset.act === 'start-tournament') send({ t: 'start-tournament' });
       if (btn.dataset.act === 'rules') howto.open();
     };
   }

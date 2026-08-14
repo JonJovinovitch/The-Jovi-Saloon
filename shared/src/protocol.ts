@@ -22,8 +22,29 @@ export interface Stakes {
 }
 
 export type GameMode = 'fixed' | 'dealers-choice' | 'mix';
+export type RoomFormat = 'cash' | 'tournament';
+
+export interface TournamentConfig {
+  buyIn: number;
+  blindIntervalMin: number;
+  /** Percentage increase applied to every blind level (for example 50 = 1.5x). */
+  blindScalePercent: number;
+  maxPlayers: number;
+}
+
+export interface TournamentView {
+  state: 'setup' | 'running' | 'complete';
+  level: number;
+  nextLevelAt: number | null;
+  entries: number;
+  maxPlayers: number;
+  prizePool: number;
+  payouts: { place: number; amount: number }[];
+  winnerName: string | null;
+}
 
 export interface RoomConfig {
+  format: RoomFormat;
   mode: GameMode;
   /** mode: 'fixed' */
   gameId: string;
@@ -39,6 +60,7 @@ export interface RoomConfig {
   allowRebuy: boolean;
   /** Deal the next hand automatically instead of waiting for a ready check. */
   autoDeal: boolean;
+  tournament: TournamentConfig;
 }
 
 export const DEFAULT_STAKES: Stakes = {
@@ -51,6 +73,7 @@ export const DEFAULT_STAKES: Stakes = {
 };
 
 export const DEFAULT_CONFIG: RoomConfig = {
+  format: 'cash',
   mode: 'dealers-choice',
   gameId: 'nlhe',
   mixId: 'horse',
@@ -61,6 +84,7 @@ export const DEFAULT_CONFIG: RoomConfig = {
   autoScale: true,
   allowRebuy: true,
   autoDeal: true,
+  tournament: { buyIn: 10, blindIntervalMin: 10, blindScalePercent: 50, maxPlayers: 36 },
 };
 
 /* ------------------------------------------------------------------ */
@@ -185,6 +209,8 @@ export interface RoomView {
   tables: { id: string; index: number; seated: number; gameName: string; handId: number }[];
   /** Set when auto-scaling just changed the table count, for a toast. */
   notice: string | null;
+  inviteCode: string;
+  tournament: TournamentView | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -243,6 +269,7 @@ export type ClientMessage =
   | { t: 'start' }
   | { t: 'add-bot'; count?: number }
   | { t: 'remove-bots' }
+  | { t: 'start-tournament' }
   | { t: 'chat'; text: string }
   | { t: 'ping' };
 
