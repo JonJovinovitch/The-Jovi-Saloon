@@ -447,7 +447,7 @@ h3,
   left: var(--x);
   top: var(--y);
   transform: translate(-50%, -50%);
-  width: 22vmin;
+  width: 30vmin;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -503,8 +503,9 @@ h3,
 }
 
 .avatar {
-  width: 5.35vmin;
-  height: 5.35vmin;
+  /* Deliberately generous: seated players read clearly even in Discord's compact view. */
+  width: 10.7vmin;
+  height: 10.7vmin;
   border-radius: 50%;
   overflow: hidden;
   flex: 0 0 auto;
@@ -1219,12 +1220,18 @@ h3,
   width: min(70vmin, 96vw);
   max-height: 90%;
   overflow-y: auto;
+  overflow-x: hidden;
   background: linear-gradient(180deg, #2a1c13, #150e09);
   border: 1px solid var(--line);
   border-top: 0.3vmin solid var(--brass-dim);
   border-radius: 0.9vmin;
   box-shadow: 0 4vmin 10vmin rgba(0, 0, 0, 0.8);
   padding: 2vmin;
+}
+
+.modal .mbody {
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .modal.wide {
@@ -1249,6 +1256,7 @@ h3,
   align-items: center;
   gap: 1vmin;
   margin-bottom: 1vmin;
+  min-width: 0;
 }
 
 .field label {
@@ -1260,6 +1268,7 @@ h3,
 .field input,
 .field select {
   flex: 1;
+  min-width: 0;
   padding: 0.7vmin 0.9vmin;
   border-radius: 0.5vmin;
   background: var(--panel);
