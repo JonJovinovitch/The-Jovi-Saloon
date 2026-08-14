@@ -91,10 +91,15 @@ export function openSettings(room: RoomView, onSave: (patch: Partial<RoomConfig>
   const rebuy = checkbox(c.allowRebuy);
   const buyIn = numberInput(c.tournament.buyIn, 0);
   const interval = numberInput(c.tournament.blindIntervalMin, 1);
-  const scaling = numberInput(c.tournament.blindScalePercent, 10);
+  const pace = select([['turbo', 'Turbo — fast finish'], ['standard', 'Standard — live event'], ['deep', 'Deep stack — more play']], c.tournament.blindPace);
   const maxPlayers = numberInput(c.tournament.maxPlayers, 2);
   maxPlayers.max = '36';
-  const tournamentRows = [field('Buy-in ($)', buyIn, 'Used to show a suggested prize pool; chips remain free play.'), field('Blind level (minutes)', interval), field('Blind increase (%)', scaling, '50% turns 5/10 into about 8/15.'), field('Player limit', maxPlayers, 'Up to 36 players across nine-seat tables.')];
+  const tournamentRows = [
+    field('Chip buy-in', buyIn, 'Creates the in-app chip award pool; no money is collected or paid.'),
+    field('Level length (minutes)', interval, 'Use 5–8 for Turbo, 10–15 for Standard, or 15–20 for Deep Stack.'),
+    field('Blind structure', pace, 'Professional-style rounded blind ladder, automatically sized from starting chips.'),
+    field('Player limit', maxPlayers, 'Up to 36 players across nine-seat tables.'),
+  ];
 
   const gameRow = field('Game', game);
   const mixRow = field('Rotation', mix, 'The game changes every orbit.');
@@ -120,7 +125,7 @@ export function openSettings(room: RoomView, onSave: (patch: Partial<RoomConfig>
     mixRow,
     field('Small blind', sb),
     field('Big blind', bb),
-    field('Starting stack', stack),
+    field('Starting chips', stack, 'Tournament Level 1 begins at 100 big blinds and derives all later levels from this stack.'),
     field('Seats per table', cap, 'The room opens another table when more players than this sit down.'),
     field('Seconds to act', clock),
     field('Auto-scale tables', autoScale),
@@ -159,7 +164,7 @@ export function openSettings(room: RoomView, onSave: (patch: Partial<RoomConfig>
       autoScale: autoScale.checked,
       autoDeal: autoDeal.checked,
       allowRebuy: rebuy.checked,
-      tournament: { buyIn: Number(buyIn.value), blindIntervalMin: Number(interval.value), blindScalePercent: Number(scaling.value), maxPlayers: Number(maxPlayers.value) },
+      tournament: { buyIn: Number(buyIn.value), blindIntervalMin: Number(interval.value), blindPace: pace.value as RoomConfig['tournament']['blindPace'], blindScalePercent: c.tournament.blindScalePercent, maxPlayers: Number(maxPlayers.value) },
     });
     close();
   });

@@ -270,7 +270,7 @@ function centerPrompt(): string | null {
     }
     const tournament = room?.tournament;
     if (tournament?.state === 'setup') {
-      const prizes = tournament.payouts.length ? ` Suggested payouts: ${tournament.payouts.map((p) => `${p.place}${p.place === 1 ? 'st' : p.place === 2 ? 'nd' : p.place === 3 ? 'rd' : 'th'} $${p.amount}`).join(' • ')}.` : '';
+      const prizes = tournament.payouts.length ? ` Chip awards: ${tournament.payouts.map((p) => `${p.place}${p.place === 1 ? 'st' : p.place === 2 ? 'nd' : p.place === 3 ? 'rd' : 'th'} ${p.amount.toLocaleString()}`).join(' • ')}.` : '';
       return `<h3>Tournament setup — ${tournament.entries}/${tournament.maxPlayers} seated</h3><p>1. Set blinds and buy-in in Settings. 2. Tap Invite and share the code. 3. Start when everyone has a seat.${prizes}</p>${
         room?.hostId === myId ? '<p><button class="btn gold" data-act="start-tournament">Start tournament</button></p>' : '<p>Waiting for the host to start the tournament.</p>'}`;
     }

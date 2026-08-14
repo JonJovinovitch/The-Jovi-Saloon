@@ -27,6 +27,8 @@ export type RoomFormat = 'cash' | 'tournament';
 export interface TournamentConfig {
   buyIn: number;
   blindIntervalMin: number;
+  /** Live-event pacing preset; derives a consistent blind ladder from starting chips. */
+  blindPace: 'turbo' | 'standard' | 'deep';
   /** Percentage increase applied to every blind level (for example 50 = 1.5x). */
   blindScalePercent: number;
   maxPlayers: number;
@@ -84,7 +86,7 @@ export const DEFAULT_CONFIG: RoomConfig = {
   autoScale: true,
   allowRebuy: true,
   autoDeal: true,
-  tournament: { buyIn: 10, blindIntervalMin: 10, blindScalePercent: 50, maxPlayers: 36 },
+  tournament: { buyIn: 10, blindIntervalMin: 10, blindPace: 'standard', blindScalePercent: 50, maxPlayers: 36 },
 };
 
 /* ------------------------------------------------------------------ */

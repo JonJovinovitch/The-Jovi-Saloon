@@ -362,6 +362,7 @@ export class Room {
     next.stakes.smallBlind = Math.max(1, Math.min(next.stakes.bigBlind - 1, Math.floor(next.stakes.smallBlind)));
     next.tournament.buyIn = Math.max(0, Math.floor(next.tournament.buyIn));
     next.tournament.blindIntervalMin = Math.max(1, Math.min(60, Math.floor(next.tournament.blindIntervalMin)));
+    next.tournament.blindPace = ['turbo', 'standard', 'deep'].includes(next.tournament.blindPace) ? next.tournament.blindPace : 'standard';
     next.tournament.blindScalePercent = Math.max(10, Math.min(200, Math.floor(next.tournament.blindScalePercent)));
     next.tournament.maxPlayers = Math.max(2, Math.min(36, Math.floor(next.tournament.maxPlayers)));
     if (next.format === 'tournament') {
@@ -387,6 +388,7 @@ export class Room {
     const entries = this.tables.flatMap((t) => t.occupied()).filter((s) => !s.isBot);
     if (entries.length < 2) return 'at least two players must take a seat before starting';
     const pool = entries.length * this.config.tournament.buyIn;
+    this.applyTournamentLevel(1);
     this.config.autoDeal = true;
     for (const table of this.tables) table.applyConfig(this.config);
     this.tournament = { state: 'running', level: 1, nextLevelAt: Date.now() + this.config.tournament.blindIntervalMin * 60_000,
@@ -407,15 +409,28 @@ export class Room {
     this.tournamentTimer = setTimeout(() => {
       if (!this.tournament || this.tournament.state !== 'running') return;
       this.tournament.level++;
-      const scale = 1 + this.config.tournament.blindScalePercent / 100;
-      this.config.stakes.smallBlind = Math.max(1, Math.round(this.config.stakes.smallBlind * scale));
-      this.config.stakes.bigBlind = Math.max(this.config.stakes.smallBlind + 1, Math.round(this.config.stakes.bigBlind * scale));
-      this.config.stakes.smallBet = this.config.stakes.bigBlind; this.config.stakes.bigBet = this.config.stakes.bigBlind * 2;
+      this.applyTournamentLevel(this.tournament.level);
       this.tournament.nextLevelAt = Date.now() + this.config.tournament.blindIntervalMin * 60_000;
       for (const t of this.tables) t.applyConfig(this.config);
       this.notice = `Blinds are up — Level ${this.tournament.level}: ${this.config.stakes.smallBlind}/${this.config.stakes.bigBlind}`;
       this.armTournamentClock(); this.touch();
     }, Math.max(0, next - Date.now()));
+  }
+
+  /** A rounded live-tournament ladder: 100BB to start, with 1.5x / 2x steps. */
+  private applyTournamentLevel(level: number): void {
+    const pace = this.config.tournament.blindPace;
+    const ladder = pace === 'turbo'
+      ? [1, 2, 3, 5, 8, 12, 20, 30, 50, 80, 120]
+      : pace === 'deep'
+        ? [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10, 12, 15, 20, 30]
+        : [1, 1.5, 2, 3, 4, 6, 8, 10, 15, 20, 30, 40];
+    const baseBigBlind = niceChip(Math.max(2, this.config.startingStack / 100));
+    const bigBlind = niceChip(baseBigBlind * (ladder[Math.min(level - 1, ladder.length - 1)] ?? 1));
+    this.config.stakes.bigBlind = bigBlind;
+    this.config.stakes.smallBlind = Math.max(1, niceChip(bigBlind / 2));
+    this.config.stakes.smallBet = bigBlind;
+    this.config.stakes.bigBet = bigBlind * 2;
   }
 
   private pruneTournamentBusted(): void {
@@ -538,6 +553,12 @@ export class Room {
 
 function tournamentPayouts(entries: number, pool: number): { place: number; amount: number }[] {
   if (entries < 2 || pool <= 0) return [];
-  const shares = entries <= 3 ? [1] : entries <= 6 ? [0.65, 0.35] : entries <= 10 ? [0.5, 0.3, 0.2] : entries <= 18 ? [0.4, 0.25, 0.18, 0.1, 0.07] : [0.35, 0.22, 0.15, 0.1, 0.07, 0.05, 0.035, 0.025];
+  const shares = entries === 2 ? [1] : entries <= 5 ? [0.65, 0.35] : entries <= 18 ? [0.5, 0.3, 0.2] : entries <= 27 ? [0.45, 0.27, 0.17, 0.11] : [0.4, 0.25, 0.16, 0.11, 0.08];
   return shares.map((share, i) => ({ place: i + 1, amount: Math.round(pool * share * 100) / 100 }));
+}
+
+function niceChip(value: number): number {
+  const power = 10 ** Math.floor(Math.log10(value));
+  const unit = value / power;
+  return Math.max(1, (unit <= 1 ? 1 : unit <= 2 ? 2 : unit <= 5 ? 5 : 10) * power);
 }

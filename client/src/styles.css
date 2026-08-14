@@ -503,8 +503,8 @@ h3,
 }
 
 .avatar {
-  width: 4.6vmin;
-  height: 4.6vmin;
+  width: 5.35vmin;
+  height: 5.35vmin;
   border-radius: 50%;
   overflow: hidden;
   flex: 0 0 auto;
@@ -512,6 +512,45 @@ h3,
   background: #1a120c;
   line-height: 0;
   box-shadow: 0 0.2vmin 0.6vmin rgba(0, 0, 0, 0.6);
+}
+
+.comment-bubble {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.7vmin);
+  transform: translateX(-50%);
+  max-width: 20vmin;
+  padding: 0.5vmin 0.8vmin;
+  border-radius: 0.65vmin;
+  background: #f4e4c4;
+  color: #27170d;
+  border: 0.16vmin solid #8a6b28;
+  box-shadow: 0 0.5vmin 1.1vmin rgba(0, 0, 0, 0.5);
+  font-size: 0.72em;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  z-index: 8;
+  pointer-events: none;
+}
+
+.comment-bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  border: 0.55vmin solid transparent;
+  border-top-color: #8a6b28;
+  border-bottom: 0;
+  transform: translateX(-50%);
+}
+
+.comment-bubble.fresh {
+  animation: comment-pop 0.28s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+
+@keyframes comment-pop {
+  from { opacity: 0; transform: translateX(-50%) translateY(0.7vmin) scale(0.75); }
 }
 
 .avatar svg {

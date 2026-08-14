@@ -27,6 +27,7 @@ interface SeatEl {
   stack: HTMLElement;
   badge: HTMLElement;
   handLabel: HTMLElement;
+  bubble: HTMLElement;
   timer: HTMLElement;
   sitBtn: HTMLButtonElement;
   bet: HTMLElement;
@@ -60,6 +61,7 @@ export class TableRenderer {
   private seatCap = 9;
   private timerRaf = 0;
   private view: TableView | null = null;
+  private lastCommentKey = new Map<number, string>();
 
   /** Cards the local player has picked to throw away. */
   selected = new Set<Card>();
@@ -157,6 +159,7 @@ export class TableRenderer {
       <div class="plate">
         <div class="badge" hidden></div>
         <div class="avatar"></div>
+        <div class="comment-bubble" hidden></div>
         <div class="who"><div class="name"></div><div class="stack"></div></div>
         <div class="timer"></div>
       </div>
@@ -177,6 +180,7 @@ export class TableRenderer {
       stack: root.querySelector('.stack')!,
       badge: root.querySelector('.badge')!,
       handLabel: root.querySelector('.hand-label')!,
+      bubble: root.querySelector('.comment-bubble')!,
       timer: root.querySelector('.timer')!,
       sitBtn: root.querySelector('.sit-btn')!,
       bet,
@@ -292,6 +296,17 @@ export class TableRenderer {
       else if (/bet|raise|bring/i.test(label)) el.badge.classList.add('aggro');
     } else {
       el.badge.hidden = true;
+    }
+    const commentKey = `${view.handId}:${label ?? ''}`;
+    if (label && this.lastCommentKey.get(s.seat) !== commentKey) {
+      this.lastCommentKey.set(s.seat, commentKey);
+      el.bubble.textContent = commentFor(s.lastAction, s.name);
+      el.bubble.hidden = false;
+      el.bubble.classList.remove('fresh');
+      void el.bubble.offsetWidth;
+      el.bubble.classList.add('fresh');
+    } else if (!label) {
+      el.bubble.hidden = true;
     }
 
     // Showdown hand description
@@ -645,4 +660,21 @@ export class TableRenderer {
   destroy(): void {
     cancelAnimationFrame(this.timerRaf);
   }
+}
+
+function commentFor(action: string | null, name: string): string {
+  const lines = /fold/i.test(action ?? '')
+    ? ['Folded like a lawn chair.', 'Saving chips for snacks.', 'Not today, partner.', 'That hand was haunted.']
+    : /raise|bet/i.test(action ?? '')
+      ? ['Making it interesting!', 'The sheriff raises.', 'Bold as brass.', 'This wagon has wheels!']
+      : /all in/i.test(action ?? '')
+        ? ['All aboard the tumbleweed!', 'No guts, no glory!', 'Cowboy mode: ON.']
+        : /check/i.test(action ?? '')
+          ? ['Just passing through.', 'Checking the weather.', 'Quiet as a cactus.']
+          : /call/i.test(action ?? '')
+            ? ['I reckon I call.', 'Cards, do your thing.', 'Let’s see the river.']
+            : /out of chips/i.test(action ?? '')
+              ? ['Down, not dusty.', 'The saloon remembers.']
+              : [`${name} is thinking…`, 'Trust the cards.', 'Yeehaw.'];
+  return lines[Math.floor(Math.random() * lines.length)];
 }
