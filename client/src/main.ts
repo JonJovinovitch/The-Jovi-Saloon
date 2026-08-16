@@ -16,6 +16,9 @@ import { textPrompt } from './ui/prompt.ts';
 import { fmtChips } from './ui/cards.ts';
 import { sfx, setSoundEnabled, soundEnabled, unlockAudio } from './sound.ts';
 import { getAvatar } from '@shared/avatars.ts';
+import { GAMES } from '@shared/games.ts';
+import { HOW_TO } from '@shared/howto.ts';
+import { VoiceChat } from './voice.ts';
 import type { Card } from '@shared/cards.ts';
 import type { ClientMessage, RoomView, ServerMessage, TableView, YouView } from '@shared/protocol.ts';
 
@@ -85,6 +88,7 @@ let closeGamePicker: (() => void) | null = null;
 let hadTurn = false;
 let welcomeTimer = 0;
 let tournamentTimer = 0;
+const voice = new VoiceChat((to, data) => send({ t: 'voice-signal', to, data }));
 
 const howto = new HowToDrawer();
 document.body.appendChild(howto.root);
@@ -150,6 +154,7 @@ topbar.innerHTML = `
   <button class="btn gold" id="rules">How to play</button>
   <button class="btn" id="people">Players</button>
   <button class="btn" id="invite">Invite</button>
+  <button class="btn" id="voice" title="Enable table voice chat">Voice off</button>
   <button class="btn" id="bots" hidden>+ Bot</button>
   <button class="btn" id="settings" hidden>Settings</button>
   <button class="btn ghost" id="sound" title="Sound">&#128266;</button>`;
@@ -167,6 +172,14 @@ $('invite').addEventListener('click', async () => {
   url.searchParams.set('room', room.inviteCode);
   try { await navigator.clipboard.writeText(url.toString()); toast(`Invite link copied — code: ${room.inviteCode}`, 'good'); }
   catch { toast(`Room code: ${room.inviteCode}. Share this page's link.`, 'good'); }
+});
+$('voice').addEventListener('click', () => {
+  if (!voice.active) {
+    void voice.start().then(() => { syncVoice(); $('voice').textContent = 'Voice on'; toast('Table voice enabled.', 'good'); }).catch(() => toast('Microphone access was not granted.', 'err'));
+  } else {
+    voice.toggleMute();
+    $('voice').textContent = voice.isMuted ? 'Voice muted' : 'Voice on';
+  }
 });
 $('settings').addEventListener('click', () => room && openSettings(room, (patch) => send({ t: 'config', config: patch })));
 $('bots').addEventListener('click', () => send({ t: 'add-bot', count: 1 }));
@@ -218,6 +231,7 @@ function paint(): void {
 
   renderer.setPrompt(centerPrompt());
   wirePrompt();
+  syncVoice();
 
   if (you.choicePrompt && !closeGamePicker) {
     closeGamePicker = openGamePicker(
@@ -237,6 +251,38 @@ function paint(): void {
   if (myTurn && !hadTurn) sfx.turn();
   hadTurn = myTurn;
 }
+
+function syncVoice(): void {
+  if (!voice.active || !room || !table) return;
+  voice.sync(room.members.filter((m) => !m.isBot && m.tableId === table!.id).map((m) => m.userId), myId);
+}
+
+function openHomeMenu(): void {
+  const scrim = document.createElement('div');
+  scrim.className = 'scrim home-menu';
+  scrim.innerHTML = `<div class="modal wide"><h2>Welcome to The Jovi Saloon</h2>
+    <p class="sub">Choose a table, learn the games, or host your own room.</p>
+    <div class="home-grid">
+      <section><h3>Join a room</h3><p>Enter a host’s code to join their cash table or tournament from any authorized Discord server.</p><button class="btn gold" data-home="join">Join with code</button></section>
+      <section><h3>Host a cash table</h3><p>Create a free-play table. Friends take a seat, mark Ready, and hands begin automatically.</p><button class="btn primary" data-home="cash">Host cash table</button></section>
+      <section><h3>Host a tournament</h3><p>Create a 2–36 player event with structured blinds, chip awards, and private invitations.</p><button class="btn primary" data-home="tournament">Host tournament</button></section>
+      <section><h3>How it works</h3><ol><li>Host creates a room code and shares Invite.</li><li>Friends open the Activity and enter that code.</li><li>Cash players mark Ready; tournament hosts configure and start the event.</li></ol></section>
+      <section class="rules"><h3>Game guide — every game</h3><div class="menu-games">${GAMES.map((g) => `<button class="btn" data-game="${g.id}" title="${HOW_TO[g.id]?.tagline ?? ''}">${g.name}</button>`).join('')}</div><p>Select any game for its complete walkthrough and rules.</p></section>
+      <section><h3>Table voice</h3><p>At a seated table, select <em>Voice off</em> to allow microphone access. Voice stays limited to players at that table.</p></section>
+    </div></div>`;
+  document.body.appendChild(scrim);
+  const go = (code: string, create?: string): void => {
+    const url = new URL(location.href); url.searchParams.set('room', code); if (create) url.searchParams.set('create', create); else url.searchParams.delete('create'); location.assign(url.toString());
+  };
+  scrim.querySelectorAll<HTMLElement>('[data-home]').forEach((b) => b.onclick = () => {
+    const action = b.dataset.home;
+    if (action === 'join') void textPrompt({ title: 'Join a room', label: 'Room code', value: '', required: true, confirmText: 'Join' }).then((code) => { if (code?.trim()) go(code.trim()); });
+    if (action === 'cash' || action === 'tournament') go(makeRoomCode(), action);
+  });
+  scrim.querySelectorAll<HTMLElement>('[data-game]').forEach((b) => b.onclick = () => { scrim.remove(); howto.open(b.dataset.game); });
+}
+
+function makeRoomCode(): string { return `saloon-${Math.random().toString(36).slice(2, 8)}`; }
 
 function renderTournamentClock(): void {
   window.clearTimeout(tournamentTimer);
@@ -350,6 +396,10 @@ function onMessage(msg: ServerMessage): void {
       splash.remove();
       applyRoom();
       paint();
+      const p = new URLSearchParams(location.search);
+      const create = p.get('create');
+      if (create === 'cash' || create === 'tournament') send({ t: 'config', config: { format: create, autoDeal: create === 'cash' } });
+      else if (!p.get('room')) openHomeMenu();
       break;
     case 'room':
       room = msg.room;
@@ -370,6 +420,9 @@ function onMessage(msg: ServerMessage): void {
       break;
     case 'chat':
       toast(`${msg.name}: ${msg.text}`);
+      break;
+    case 'voice-signal':
+      void voice.receive(msg.from, msg.data).catch(() => toast('Could not connect table voice.', 'err'));
       break;
     case 'error':
       toast(msg.message, 'err');

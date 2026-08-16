@@ -124,7 +124,9 @@ async function bootDiscord(clientId: string): Promise<Boot> {
   // A shared code creates a private room inside the same Discord channel;
   // without one, retain the convenient one-room-per-channel default.
   const roomCode = new URLSearchParams(location.search).get('room')?.replace(/[^a-z0-9_-]/gi, '').slice(0, 32);
-  const roomId = `discord:${sdk.guildId ?? 'dm'}:${sdk.channelId ?? sdk.instanceId}${roomCode ? `:${roomCode}` : ''}`;
+  // A code is global to this deployment, so friends can join from any server
+  // where the Activity is authorized. Without one, keep a private channel lobby.
+  const roomId = roomCode ? `room:${roomCode.toLowerCase()}` : `lobby:${sdk.guildId ?? 'dm'}:${sdk.channelId ?? sdk.instanceId}`;
 
   return {
     embedded: true,

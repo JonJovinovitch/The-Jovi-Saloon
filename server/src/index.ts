@@ -368,6 +368,17 @@ wss.on('connection', (ws) => {
         for (const s of sessions.values()) if (s.roomId === room.id) send(s.ws, out);
         break;
       }
+      case 'voice-signal': {
+        const target = [...sessions.values()].find((s) => s.roomId === room.id && s.userId === msg.to);
+        // Voice is table-scoped: spectators and people at another tournament
+        // table are never offered an audio connection.
+        if (!target) break;
+        const mine = room.tableOf(userId);
+        const theirs = room.tableOf(target.userId);
+        if (!mine || mine !== theirs) break;
+        send(target.ws, { t: 'voice-signal', from: userId, data: msg.data });
+        break;
+      }
     }
   });
 

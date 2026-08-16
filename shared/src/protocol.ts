@@ -280,6 +280,7 @@ export type ClientMessage =
   | { t: 'remove-bots' }
   | { t: 'start-tournament' }
   | { t: 'chat'; text: string }
+  | { t: 'voice-signal'; to: string; data: unknown }
   | { t: 'ping' };
 
 export type ServerMessage =
@@ -288,6 +289,7 @@ export type ServerMessage =
   | { t: 'table'; table: TableView; you: YouView }
   | { t: 'events'; tableId: string; events: GameEvent[] }
   | { t: 'chat'; from: string; name: string; text: string; ts: number }
+  | { t: 'voice-signal'; from: string; data: unknown }
   | { t: 'error'; message: string }
   | { t: 'pong' };
 

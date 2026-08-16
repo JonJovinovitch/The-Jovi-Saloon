@@ -541,7 +541,7 @@ export class Room {
         handId: t.handId,
       })),
       notice: this.notice,
-      inviteCode: this.id.replace(/^local:/, '').replace(/^discord:[^:]+:[^:]+:/, ''),
+      inviteCode: this.id.replace(/^(?:local|room):/, ''),
       tournament: this.tournament ?? (this.config.format === 'tournament' ? {
         state: 'setup', level: 1, nextLevelAt: null, entries: this.seatedCount(), maxPlayers: this.config.tournament.maxPlayers,
         prizePool: this.seatedCount() * this.config.tournament.buyIn,
