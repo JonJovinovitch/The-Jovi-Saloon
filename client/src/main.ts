@@ -334,10 +334,10 @@ function openHomeMenu(): void {
   scrim.className = 'scrim home-menu';
   scrim.innerHTML = `<div class="modal wide home-modal"><div class="home-hero"><div class="home-star">★</div><div><p class="eyebrow">PRIVATE TABLES · FREE PLAY · EST. 1876</p><h2>Welcome to The Jovi Saloon</h2><p class="sub">Choose your game, bring your crew, and make the back room your own.</p></div></div>
     <div class="home-grid">
-      <section class="home-action join"><span class="home-icon">♠</span><h3>Join a room</h3><p>Enter a host’s code to join their cash table or tournament from any authorized Discord server.</p><button class="btn gold" data-home="join">Enter room code</button></section>
-      <section class="home-action"><span class="home-icon">♣</span><h3>Host cash</h3><p>Start a free-play table. Friends take a seat, mark Ready, and play starts automatically.</p><button class="btn primary" data-home="cash">Create cash table</button></section>
+      <section class="home-action join"><span class="home-icon">♠</span><h3>Join a room</h3><p>Enter a host’s code to join their single-table game or tournament from any authorized Discord server.</p><button class="btn gold" data-home="join">Enter room code</button></section>
+      <section class="home-action"><span class="home-icon">♣</span><h3>Host single table</h3><p>Start a free-play table. Friends take a seat, mark Ready, and play starts automatically.</p><button class="btn primary" data-home="single">Create single table</button></section>
       <section class="home-action"><span class="home-icon">♦</span><h3>Host tournament</h3><p>Run a 2–36 player event with structured blinds, chip awards, and private invites.</p><button class="btn primary" data-home="tournament">Create tournament</button></section>
-      <section class="host-steps"><h3>Invite friends in three steps</h3><ol><li>Create a cash table or tournament.</li><li>Use <strong>Invite &amp; copy</strong> in the top bar.</li><li>Friends open the Activity and choose <strong>Enter room code</strong>.</li></ol></section>
+      <section class="host-steps"><h3>Invite friends in three steps</h3><ol><li>Create a single-table game or tournament.</li><li>Use <strong>Invite &amp; copy</strong> in the top bar.</li><li>Friends open the Activity and choose <strong>Enter room code</strong>.</li></ol></section>
       <section class="rules"><h3>Game guide — every game</h3><div class="menu-games">${GAMES.map((g) => `<button class="btn" data-game="${g.id}" title="${HOW_TO[g.id]?.tagline ?? ''}">${g.name}</button>`).join('')}</div><p>Select any game for its complete walkthrough and rules.</p></section>
       <section><h3>Table voice</h3><p>Join your Discord voice channel and use Discord’s own microphone controls while you play.</p></section>
     </div></div>`;
@@ -348,7 +348,7 @@ function openHomeMenu(): void {
   scrim.querySelectorAll<HTMLElement>('[data-home]').forEach((b) => b.onclick = () => {
     const action = b.dataset.home;
     if (action === 'join') void textPrompt({ title: 'Join a room', label: 'Room code', value: '', required: true, confirmText: 'Join' }).then((code) => { if (code?.trim()) go(code.trim()); });
-    if (action === 'cash' || action === 'tournament') {
+    if (action === 'single' || action === 'tournament') {
       void requestRoomCode().then((code) => go(code, action)).catch(() => toast('Could not create a room code. Please try again.', 'err'));
     }
   });
@@ -398,7 +398,7 @@ function centerPrompt(): string | null {
       return `<h3>Tournament setup — ${tournament.entries}/${tournament.maxPlayers} seated</h3><p>1. Set blinds and buy-in in Settings. 2. Tap Invite and share the code. 3. Start when everyone has a seat.${prizes}</p>${
         room?.hostId === myId ? '<p><button class="btn gold" data-act="start-tournament">Start tournament</button></p>' : '<p>Waiting for the host to start the tournament.</p>'}`;
     }
-    return `<h3>${table.message}</h3><p>${you.seat === null ? 'Take a seat, then select Ready to play.' : 'Select Ready to play. A cash hand starts automatically once two or more players are ready.'}</p>${
+    return `<h3>${table.message}</h3><p>${you.seat === null ? 'Take a seat, then select Ready to play.' : 'Select Ready to play. A hand starts automatically once two or more players are ready.'}</p>${
       room?.hostId === myId ? '<p><button class="btn" data-act="bot">Add a practice bot</button></p>' : ''
     }`;
   }
@@ -477,7 +477,7 @@ function onMessage(msg: ServerMessage): void {
       paint();
       const p = new URLSearchParams(location.search);
       const create = p.get('create');
-      if (create === 'cash' || create === 'tournament') send({ t: 'config', config: { format: create, autoDeal: create === 'cash' } });
+      if (create === 'single' || create === 'tournament') send({ t: 'config', config: { format: create, autoDeal: create === 'single' } });
       else if (!p.get('room')) openHomeMenu();
       break;
     case 'room':

@@ -68,7 +68,7 @@ export function openSettings(room: RoomView, onSave: (patch: Partial<RoomConfig>
   const c = room.config;
   const { body, close } = modal('Set up your room');
 
-  const format = select([['cash', 'Cash game — free play'], ['tournament', 'Tournament — scheduled blinds']], c.format);
+  const format = select([['single', 'Single table — free play'], ['tournament', 'Tournament — scheduled blinds']], c.format);
 
   const mode = select(
     [
@@ -119,7 +119,7 @@ export function openSettings(room: RoomView, onSave: (patch: Partial<RoomConfig>
   format.addEventListener('change', syncFormat);
 
   body.append(
-    field('Choose a room type', format, '1. Choose cash games for free play, or tournament for scheduled blind levels and prizes.'),
+    field('Choose a room type', format, '1. Choose single table for free play, or tournament for scheduled blind levels and prizes.'),
     modeRow,
     gameRow,
     mixRow,

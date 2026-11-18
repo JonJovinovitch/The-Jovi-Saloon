@@ -24,7 +24,7 @@ export interface Stakes {
 }
 
 export type GameMode = 'fixed' | 'dealers-choice' | 'mix';
-export type RoomFormat = 'cash' | 'tournament';
+export type RoomFormat = 'single' | 'tournament';
 
 export interface TournamentConfig {
   buyIn: number;
@@ -78,7 +78,7 @@ export const DEFAULT_STAKES: Stakes = {
 };
 
 export const DEFAULT_CONFIG: RoomConfig = {
-  format: 'cash',
+  format: 'single',
   mode: 'dealers-choice',
   gameId: 'nlhe',
   mixId: 'horse',
@@ -112,7 +112,7 @@ export interface SeatView {
   folded: boolean;
   allIn: boolean;
   sittingOut: boolean;
-  /** Cash players explicitly opt in before a hand begins. */
+  /** Single-table players explicitly opt in before a hand begins. */
   ready: boolean;
   /** Tournament player left their seat and is forced in until their chips are gone. */
   autoFold: boolean;

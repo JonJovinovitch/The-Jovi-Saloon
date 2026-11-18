@@ -365,7 +365,7 @@ export class Room {
 
   applyConfig(patch: Partial<RoomConfig>): string | null {
     const next: RoomConfig = { ...this.config, ...patch, stakes: { ...this.config.stakes, ...patch.stakes } };
-    next.format = next.format === 'tournament' ? 'tournament' : 'cash';
+    next.format = next.format === 'tournament' ? 'tournament' : 'single';
     next.tournament = { ...this.config.tournament, ...patch.tournament };
     next.seatCap = Math.max(2, Math.min(10, Math.floor(next.seatCap)));
     next.startingStack = Math.max(1, Math.floor(next.startingStack));
@@ -380,7 +380,7 @@ export class Room {
     if (next.format === 'tournament') {
       next.mode = 'fixed'; next.gameId = 'nlhe'; next.allowRebuy = false; next.autoScale = true; next.autoDeal = false; next.seatCap = Math.min(9, next.seatCap);
     } else {
-      // Cash hands begin when two seated players have explicitly marked ready.
+      // Single-table hands begin when two seated players have explicitly marked ready.
       next.autoDeal = true;
     }
     if (next.mode === 'fixed') {

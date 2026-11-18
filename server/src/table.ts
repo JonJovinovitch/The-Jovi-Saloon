@@ -553,7 +553,7 @@ export class Table {
         isBot: s.isBot,
         cards: p ? this.cardsFor(p, viewerSeat, showdownReveal) : [],
         lastDrawCount: p?.lastDrawCount ?? null,
-        lastAction: p?.lastAction ?? (s.autoFold ? 'Away — auto-folding' : s.sittingOut ? 'Sitting out' : !s.ready && this.config.format === 'cash' ? 'Not ready' : s.busted ? 'Out of chips' : null),
+        lastAction: p?.lastAction ?? (s.autoFold ? 'Away — auto-folding' : s.sittingOut ? 'Sitting out' : !s.ready && this.config.format === 'single' ? 'Not ready' : s.busted ? 'Out of chips' : null),
         handDesc: showdownReveal ? p?.hiDesc ?? null : null,
         lowDesc: showdownReveal ? p?.loDesc ?? null : null,
         bestCards: showdownReveal ? p?.hi?.cards ?? null : null,
