@@ -123,10 +123,10 @@ async function bootDiscord(clientId: string): Promise<Boot> {
 
   // A shared code creates a private room inside the same Discord channel;
   // without one, retain the convenient one-room-per-channel default.
-  const roomCode = new URLSearchParams(location.search).get('room')?.replace(/[^a-z0-9_-]/gi, '').slice(0, 32);
+  const roomCode = new URLSearchParams(location.search).get('room')?.replace(/[^a-z0-9_-]/gi, '').slice(0, 32).toUpperCase();
   // A code is global to this deployment, so friends can join from any server
   // where the Activity is authorized. Without one, keep a private channel lobby.
-  const roomId = roomCode ? `room:${roomCode.toLowerCase()}` : `lobby:${sdk.guildId ?? 'dm'}:${sdk.channelId ?? sdk.instanceId}`;
+  const roomId = roomCode ? `room:${roomCode}` : `lobby:${sdk.guildId ?? 'dm'}:${sdk.channelId ?? sdk.instanceId}`;
 
   return {
     embedded: true,
@@ -152,10 +152,10 @@ async function bootLocal(): Promise<Boot> {
   let name = localStorage.getItem('poker.name') ?? '';
   if (!name) {
     const answer = await textPrompt({
-      title: 'Welcome to the room',
-      label: 'Your name',
+      title: 'Welcome to The Jovi Saloon',
+      label: 'Your table name',
       value: `Player ${Math.floor(Math.random() * 900 + 100)}`,
-      confirmText: 'Sit down',
+      confirmText: 'Enter the saloon',
       required: true,
     });
     name = (answer ?? '').trim().slice(0, 24) || `Player ${Math.floor(Math.random() * 900 + 100)}`;

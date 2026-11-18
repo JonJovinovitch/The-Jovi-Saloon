@@ -57,6 +57,8 @@ export interface AvatarDef {
   name: string;
   tagline: string;
   look: AvatarLook;
+  /** Optional transparent portrait asset for special guest characters. */
+  portrait?: string;
 }
 
 /* A dusty frontier palette, reused across the cast so it reads as one set. */
@@ -95,6 +97,93 @@ const HAIR = {
 };
 
 export const AVATARS: AvatarDef[] = [
+  {
+    id: 'jonjonjovi',
+    name: 'JonJonJovi',
+    tagline: 'The saloon’s most unmistakable high roller.',
+    portrait: '/characters/jonjonjovi.png',
+    look: {
+      bg: C.plum, skin: SKIN.tan, hair: HAIR.sandy, shirt: '#b02b87', vest: null,
+      hat: 'none', hatColor: '#3c204a', hatBand: null, hairStyle: 'long', facial: 'none', neck: 'none', neckColor: '#b02b87', accessory: 'none',
+    },
+  },
+  {
+    id: 'chef-boy-are-you-jovi',
+    name: 'Chef Boy Are You Jovi',
+    tagline: 'The sauce is secret. The bluff is not.',
+    portrait: '/characters/chef-boy-are-you-jovi.png',
+    look: { bg: C.rust, skin: SKIN.olive, hair: HAIR.darkBrown, shirt: '#efe9dd', vest: null, hat: 'none', hatColor: '#efe9dd', hatBand: null, hairStyle: 'wavy', facial: 'mustache', neck: 'kerchief', neckColor: '#b13227', accessory: 'specs' },
+  },
+  {
+    id: 'cowjovi',
+    name: 'CowJovi',
+    tagline: 'Saddles up, calls down, never backs down.',
+    portrait: '/characters/cowjovi.png',
+    look: { bg: C.sand, skin: SKIN.tan, hair: HAIR.sandy, shirt: '#5c3a22', vest: '#4a2e1e', hat: 'wide', hatColor: '#5b3821', hatBand: '#c9a24a', hairStyle: 'long', facial: 'beard', neck: 'bandana', neckColor: '#6d3225', accessory: 'badge' },
+  },
+  {
+    id: 'crocojovi',
+    name: 'CrocoJovi',
+    tagline: 'Cold-blooded at the felt. Warm-hearted nowhere else.',
+    portrait: '/characters/crocojovi.png',
+    look: { bg: C.moss, skin: SKIN.olive, hair: HAIR.darkBrown, shirt: '#7a372c', vest: '#3a2a1c', hat: 'none', hatColor: '#6d3225', hatBand: null, hairStyle: 'wavy', facial: 'handlebar', neck: 'kerchief', neckColor: '#6d3225', accessory: 'specs' },
+  },
+  {
+    id: 'gijovi',
+    name: 'GI Jovi',
+    tagline: 'Never leaves a chip behind.',
+    portrait: '/characters/gijovi.png',
+    look: { bg: C.moss, skin: SKIN.tan, hair: HAIR.sandy, shirt: '#465335', vest: '#354026', hat: 'cavalry', hatColor: '#465335', hatBand: '#1d281a', hairStyle: 'short', facial: 'none', neck: 'none', neckColor: '#465335', accessory: 'none' },
+  },
+  {
+    id: 'goojovi',
+    name: 'GooJovi',
+    tagline: 'Keeps a straight face, somehow.',
+    portrait: '/characters/goojovi.png',
+    look: { bg: C.clay, skin: SKIN.olive, hair: HAIR.darkBrown, shirt: '#8a817d', vest: null, hat: 'none', hatColor: C.clay, hatBand: null, hairStyle: 'short', facial: 'beard', neck: 'none', neckColor: C.clay, accessory: 'none' },
+  },
+  {
+    id: 'gremjovi',
+    name: 'GremJovi',
+    tagline: 'Small ears. Enormous raises.',
+    portrait: '/characters/gremjovi.png',
+    look: { bg: C.dusk, skin: SKIN.tan, hair: HAIR.brown, shirt: '#72523a', vest: null, hat: 'none', hatColor: C.dusk, hatBand: null, hairStyle: 'long', facial: 'stubble', neck: 'bolo', neckColor: '#c9a24a', accessory: 'none' },
+  },
+  {
+    id: 'jovitater',
+    name: 'Jovi Tater',
+    tagline: 'Spud you like to call?',
+    portrait: '/characters/jovitater.png',
+    look: { bg: C.sand, skin: SKIN.olive, hair: HAIR.sandy, shirt: '#9a7040', vest: null, hat: 'none', hatColor: C.sand, hatBand: null, hairStyle: 'short', facial: 'mustache', neck: 'none', neckColor: C.sand, accessory: 'none' },
+  },
+  {
+    id: 'jovo',
+    name: 'Jovo',
+    tagline: 'The original table face.',
+    portrait: '/characters/jovo.png',
+    look: { bg: C.rust, skin: SKIN.tan, hair: HAIR.darkBrown, shirt: '#8b8a8a', vest: null, hat: 'none', hatColor: C.rust, hatBand: null, hairStyle: 'short', facial: 'beard', neck: 'none', neckColor: C.rust, accessory: 'none' },
+  },
+  {
+    id: 'jovibonah',
+    name: 'Jovi Bonah',
+    tagline: 'Blue-sky confidence, frontier nerve.',
+    portrait: '/characters/jovibonah.png',
+    look: { bg: C.denim, skin: SKIN.tan, hair: HAIR.black, shirt: '#336db1', vest: '#274f85', hat: 'wide', hatColor: '#51361e', hatBand: '#b67d31', hairStyle: 'short', facial: 'beard', neck: 'bandana', neckColor: '#a73b2c', accessory: 'badge' },
+  },
+  {
+    id: 'joviglo',
+    name: 'Jovi Glo',
+    tagline: 'Glitters brighter after a big pot.',
+    portrait: '/characters/joviglo.png',
+    look: { bg: C.plum, skin: SKIN.olive, hair: HAIR.darkBrown, shirt: '#bd4e86', vest: null, hat: 'none', hatColor: C.plum, hatBand: null, hairStyle: 'bun', facial: 'stubble', neck: 'bolo', neckColor: '#c9a24a', accessory: 'specs' },
+  },
+  {
+    id: 'jovilamp',
+    name: 'Jovi Lamp',
+    tagline: 'The bright idea at every late-night table.',
+    portrait: '/characters/jovilamp.png',
+    look: { bg: C.plum, skin: SKIN.olive, hair: HAIR.sandy, shirt: '#b82378', vest: null, hat: 'plumed', hatColor: '#d72884', hatBand: '#c9a24a', hairStyle: 'long', facial: 'stubble', neck: 'ribbon', neckColor: '#e43b95', accessory: 'feather' },
+  },
   {
     id: 'sheriff',
     name: 'The Sheriff',

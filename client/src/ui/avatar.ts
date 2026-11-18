@@ -322,6 +322,11 @@ export function avatarSvg(id: string): string {
   if (hit) return hit;
 
   const def: AvatarDef = getAvatar(id);
+  if (def.portrait) {
+    const svg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${def.name}"><defs><clipPath id="clip-${id}"><circle cx="50" cy="50" r="50"/></clipPath><radialGradient id="bg-${id}" cx="50%" cy="35%" r="72%"><stop offset="0%" stop-color="#5b4024"/><stop offset="100%" stop-color="#130c08"/></radialGradient></defs><circle cx="50" cy="50" r="50" fill="url(#bg-${id})"/><image href="${def.portrait}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-${id})"/></svg>`;
+    cache.set(id, svg);
+    return svg;
+  }
   const look = def.look;
   const clip = `clip-${id}`;
   const grad = `bg-${id}`;

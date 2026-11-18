@@ -141,7 +141,9 @@ export class TableRenderer {
   /** Where a player's committed chips sit: pulled in toward the pot. */
   private betPosition(seat: number): { x: number; y: number } {
     const p = this.seatPosition(seat);
-    return { x: 50 + (p.x - 50) * 0.55, y: 48 + (p.y - 51) * 0.52 };
+    // Bets live on the felt between the cards and the central pot—never over
+    // the player’s hand. Pull them decisively inward so the wager reads at a glance.
+    return { x: 50 + (p.x - 50) * 0.38, y: 47 + (p.y - 47) * 0.38 };
   }
 
   /* ---------------------------------------------------------------- */

@@ -18,7 +18,6 @@ import { sfx, setSoundEnabled, soundEnabled, unlockAudio } from './sound.ts';
 import { getAvatar } from '@shared/avatars.ts';
 import { GAMES } from '@shared/games.ts';
 import { HOW_TO } from '@shared/howto.ts';
-import { VoiceChat } from './voice.ts';
 import type { Card } from '@shared/cards.ts';
 import type { ClientMessage, RoomView, ServerMessage, TableView, YouView } from '@shared/protocol.ts';
 
@@ -52,6 +51,21 @@ function toast(text: string, kind: '' | 'err' | 'good' = ''): void {
   setTimeout(() => {
     el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: 'forwards' }).onfinish = () => el.remove();
   }, 3200);
+}
+
+function addChatMessage(name: string, text: string, mine: boolean): void {
+  const list = chatPanel.querySelector<HTMLElement>('.chat-messages');
+  if (!list) return;
+  const row = document.createElement('article');
+  row.className = `chat-message${mine ? ' mine' : ''}`;
+  const who = document.createElement('strong');
+  who.textContent = mine ? 'You' : name;
+  const body = document.createElement('p');
+  body.textContent = text;
+  row.append(who, body);
+  list.appendChild(row);
+  while (list.children.length > 80) list.firstElementChild?.remove();
+  list.scrollTop = list.scrollHeight;
 }
 
 /**
@@ -88,7 +102,6 @@ let closeGamePicker: (() => void) | null = null;
 let hadTurn = false;
 let welcomeTimer = 0;
 let tournamentTimer = 0;
-const voice = new VoiceChat((to, data) => send({ t: 'voice-signal', to, data }));
 
 const howto = new HowToDrawer();
 document.body.appendChild(howto.root);
@@ -150,37 +163,94 @@ topbar.innerHTML = `
   <div class="tablepicker" id="tables"></div>
   <div class="spacer"></div>
   <div class="chip-tag" id="conn">saddling up…</div>
+  <button class="room-code" id="room-code" title="Copy room invite" hidden></button>
   <button class="btn char" id="character" title="Change character"><span class="portrait sm" id="my-portrait"></span><span class="char-name">Character</span></button>
   <button class="btn gold" id="rules">How to play</button>
   <button class="btn" id="people">Players</button>
-  <button class="btn" id="invite">Invite</button>
-  <button class="btn" id="voice" title="Enable table voice chat">Voice off</button>
+  <button class="btn" id="chat">Table chat</button>
+  <button class="btn invite-btn" id="invite">Invite &amp; copy</button>
+  <button class="btn" id="voice" title="Use Discord's voice channel">Discord voice</button>
   <button class="btn" id="bots" hidden>+ Bot</button>
   <button class="btn" id="settings" hidden>Settings</button>
   <button class="btn ghost" id="sound" title="Sound">&#128266;</button>`;
 
 app.append(topbar, renderer.root, controls.root);
 
+const chatPanel = document.createElement('aside');
+chatPanel.className = 'chat-panel';
+chatPanel.hidden = true;
+chatPanel.innerHTML = `<header><div><span class="chat-kicker">THE BACK ROOM</span><h2>Table chat</h2></div><button class="btn ghost" data-chat-close aria-label="Close chat">×</button></header><div class="chat-messages" aria-live="polite"></div><form class="chat-compose"><input maxlength="300" placeholder="Say something to the table…" aria-label="Table message"><button class="btn gold" type="submit">Send</button></form>`;
+app.appendChild(chatPanel);
+
 const $ = <T extends HTMLElement>(id: string): T => topbar.querySelector(`#${id}`) as T;
 
 $('character').addEventListener('click', () => pickCharacter());
 $('rules').addEventListener('click', () => howto.toggle(table?.gameId));
 $('people').addEventListener('click', () => room && openRoster(room));
-$('invite').addEventListener('click', async () => {
+$('chat').addEventListener('click', () => {
+  chatPanel.hidden = !chatPanel.hidden;
+  if (!chatPanel.hidden) chatPanel.querySelector<HTMLInputElement>('input')!.focus();
+});
+chatPanel.querySelector<HTMLElement>('[data-chat-close]')!.onclick = () => { chatPanel.hidden = true; };
+chatPanel.querySelector<HTMLFormElement>('.chat-compose')!.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const input = chatPanel.querySelector<HTMLInputElement>('input')!;
+  const text = input.value.trim();
+  if (!text) return;
+  send({ t: 'chat', text });
+  input.value = '';
+});
+async function copyInvite(): Promise<void> {
   if (!room) return;
+  if (!new URLSearchParams(location.search).has('room')) {
+    openHomeMenu();
+    return;
+  }
   const url = new URL(location.href);
   url.searchParams.set('room', room.inviteCode);
-  try { await navigator.clipboard.writeText(url.toString()); toast(`Invite link copied — code: ${room.inviteCode}`, 'good'); }
-  catch { toast(`Room code: ${room.inviteCode}. Share this page's link.`, 'good'); }
-});
-$('voice').addEventListener('click', () => {
-  if (!voice.active) {
-    void voice.start().then(() => { syncVoice(); $('voice').textContent = 'Voice on'; toast('Table voice enabled.', 'good'); }).catch(() => toast('Microphone access was not granted.', 'err'));
-  } else {
-    voice.toggleMute();
-    $('voice').textContent = voice.isMuted ? 'Voice muted' : 'Voice on';
+  const copied = await copyText(url.toString());
+  if (copied) toast(`Invite copied — room code ${room.inviteCode}`, 'good');
+  // Always reveal the invite after copying. This makes the short code obvious
+  // and provides a second, user-gesture copy attempt in Discord's iframe.
+  openInviteSheet(room.inviteCode, url.toString(), copied);
+}
+
+/** Discord's embedded iframe may deny Clipboard API permission. Use the
+ * traditional selection path as a second attempt before asking the player to copy. */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+    document.body.appendChild(area);
+    area.select();
+    let copied = false;
+    try { copied = document.execCommand('copy'); } catch { /* denied */ }
+    area.remove();
+    return copied;
   }
-});
+}
+
+function openInviteSheet(code: string, link: string, copied: boolean): void {
+  const scrim = document.createElement('div');
+  scrim.className = 'scrim';
+  scrim.innerHTML = `<div class="modal invite-sheet"><h2>Invite your crew</h2><p class="sub">${copied ? 'Invite link copied. Share it anywhere, or use the short room code below.' : 'Copy the link below, or tell friends the short room code.'}</p><label>Share link</label><input readonly value=""><label>Room code</label><input readonly value=""><div class="modal-actions"><button class="btn ghost" data-close>Close</button><button class="btn gold" data-copy>Copy link</button></div></div>`;
+  const inputs = scrim.querySelectorAll<HTMLInputElement>('input');
+  inputs[0].value = link; inputs[1].value = code;
+  const selectLink = (): void => { inputs[0].focus(); inputs[0].select(); };
+  scrim.querySelector<HTMLElement>('[data-close]')!.onclick = () => scrim.remove();
+  scrim.querySelector<HTMLElement>('[data-copy]')!.onclick = () => { selectLink(); void copyText(link).then((ok) => { if (ok) { toast('Invite copied.', 'good'); scrim.remove(); } }); };
+  inputs.forEach((input) => input.addEventListener('focus', () => input.select()));
+  document.body.appendChild(scrim);
+  selectLink();
+}
+$('invite').addEventListener('click', () => void copyInvite());
+$('room-code').addEventListener('click', () => void copyInvite());
+$('voice').addEventListener('click', () => openVoiceHelp());
 $('settings').addEventListener('click', () => room && openSettings(room, (patch) => send({ t: 'config', config: patch })));
 $('bots').addEventListener('click', () => send({ t: 'add-bot', count: 1 }));
 $('sound').addEventListener('click', () => {
@@ -231,7 +301,6 @@ function paint(): void {
 
   renderer.setPrompt(centerPrompt());
   wirePrompt();
-  syncVoice();
 
   if (you.choicePrompt && !closeGamePicker) {
     closeGamePicker = openGamePicker(
@@ -252,23 +321,25 @@ function paint(): void {
   hadTurn = myTurn;
 }
 
-function syncVoice(): void {
-  if (!voice.active || !room || !table) return;
-  voice.sync(room.members.filter((m) => !m.isBot && m.tableId === table!.id).map((m) => m.userId), myId);
+function openVoiceHelp(): void {
+  const scrim = document.createElement('div');
+  scrim.className = 'scrim';
+  scrim.innerHTML = `<div class="modal voice-help"><h2>Table voice runs through Discord</h2><p class="sub">Join the same Discord voice channel as your tablemates, then use Discord’s microphone controls. This Activity does not request a second microphone permission.</p><div class="modal-actions"><button class="btn gold">Got it</button></div></div>`;
+  scrim.querySelector('button')!.onclick = () => scrim.remove();
+  document.body.appendChild(scrim);
 }
 
 function openHomeMenu(): void {
   const scrim = document.createElement('div');
   scrim.className = 'scrim home-menu';
-  scrim.innerHTML = `<div class="modal wide"><h2>Welcome to The Jovi Saloon</h2>
-    <p class="sub">Choose a table, learn the games, or host your own room.</p>
+  scrim.innerHTML = `<div class="modal wide home-modal"><div class="home-hero"><div class="home-star">★</div><div><p class="eyebrow">PRIVATE TABLES · FREE PLAY · EST. 1876</p><h2>Welcome to The Jovi Saloon</h2><p class="sub">Choose your game, bring your crew, and make the back room your own.</p></div></div>
     <div class="home-grid">
-      <section><h3>Join a room</h3><p>Enter a host’s code to join their cash table or tournament from any authorized Discord server.</p><button class="btn gold" data-home="join">Join with code</button></section>
-      <section><h3>Host a cash table</h3><p>Create a free-play table. Friends take a seat, mark Ready, and hands begin automatically.</p><button class="btn primary" data-home="cash">Host cash table</button></section>
-      <section><h3>Host a tournament</h3><p>Create a 2–36 player event with structured blinds, chip awards, and private invitations.</p><button class="btn primary" data-home="tournament">Host tournament</button></section>
-      <section><h3>How it works</h3><ol><li>Host creates a room code and shares Invite.</li><li>Friends open the Activity and enter that code.</li><li>Cash players mark Ready; tournament hosts configure and start the event.</li></ol></section>
+      <section class="home-action join"><span class="home-icon">♠</span><h3>Join a room</h3><p>Enter a host’s code to join their cash table or tournament from any authorized Discord server.</p><button class="btn gold" data-home="join">Enter room code</button></section>
+      <section class="home-action"><span class="home-icon">♣</span><h3>Host cash</h3><p>Start a free-play table. Friends take a seat, mark Ready, and play starts automatically.</p><button class="btn primary" data-home="cash">Create cash table</button></section>
+      <section class="home-action"><span class="home-icon">♦</span><h3>Host tournament</h3><p>Run a 2–36 player event with structured blinds, chip awards, and private invites.</p><button class="btn primary" data-home="tournament">Create tournament</button></section>
+      <section class="host-steps"><h3>Invite friends in three steps</h3><ol><li>Create a cash table or tournament.</li><li>Use <strong>Invite &amp; copy</strong> in the top bar.</li><li>Friends open the Activity and choose <strong>Enter room code</strong>.</li></ol></section>
       <section class="rules"><h3>Game guide — every game</h3><div class="menu-games">${GAMES.map((g) => `<button class="btn" data-game="${g.id}" title="${HOW_TO[g.id]?.tagline ?? ''}">${g.name}</button>`).join('')}</div><p>Select any game for its complete walkthrough and rules.</p></section>
-      <section><h3>Table voice</h3><p>At a seated table, select <em>Voice off</em> to allow microphone access. Voice stays limited to players at that table.</p></section>
+      <section><h3>Table voice</h3><p>Join your Discord voice channel and use Discord’s own microphone controls while you play.</p></section>
     </div></div>`;
   document.body.appendChild(scrim);
   const go = (code: string, create?: string): void => {
@@ -277,12 +348,20 @@ function openHomeMenu(): void {
   scrim.querySelectorAll<HTMLElement>('[data-home]').forEach((b) => b.onclick = () => {
     const action = b.dataset.home;
     if (action === 'join') void textPrompt({ title: 'Join a room', label: 'Room code', value: '', required: true, confirmText: 'Join' }).then((code) => { if (code?.trim()) go(code.trim()); });
-    if (action === 'cash' || action === 'tournament') go(makeRoomCode(), action);
+    if (action === 'cash' || action === 'tournament') {
+      void requestRoomCode().then((code) => go(code, action)).catch(() => toast('Could not create a room code. Please try again.', 'err'));
+    }
   });
   scrim.querySelectorAll<HTMLElement>('[data-game]').forEach((b) => b.onclick = () => { scrim.remove(); howto.open(b.dataset.game); });
 }
 
-function makeRoomCode(): string { return `saloon-${Math.random().toString(36).slice(2, 8)}`; }
+async function requestRoomCode(): Promise<string> {
+  const embedded = new URLSearchParams(location.search).has('frame_id');
+  const response = await fetch(`${embedded ? '/.proxy' : ''}/api/room-code`);
+  const data = (await response.json()) as { code?: string };
+  if (!response.ok || !data.code) throw new Error('room code unavailable');
+  return data.code;
+}
 
 function renderTournamentClock(): void {
   window.clearTimeout(tournamentTimer);
@@ -419,10 +498,8 @@ function onMessage(msg: ServerMessage): void {
       if (table && msg.tableId === table.id) renderer.playEvents(msg.events);
       break;
     case 'chat':
-      toast(`${msg.name}: ${msg.text}`);
-      break;
-    case 'voice-signal':
-      void voice.receive(msg.from, msg.data).catch(() => toast('Could not connect table voice.', 'err'));
+      addChatMessage(msg.name, msg.text, msg.from === myId);
+      if (chatPanel.hidden) toast(`${msg.name}: ${msg.text}`);
       break;
     case 'error':
       toast(msg.message, 'err');
@@ -437,6 +514,11 @@ function applyRoom(): void {
   const host = room.hostId === myId;
   $('settings').hidden = !host;
   $('bots').hidden = !host;
+  const roomCode = $('room-code');
+  const hasShareableCode = new URLSearchParams(location.search).has('room');
+  roomCode.hidden = !hasShareableCode;
+  roomCode.textContent = hasShareableCode ? `ROOM CODE · ${room.inviteCode}` : '';
+  $('invite').textContent = hasShareableCode ? 'Invite & copy' : 'Create room to invite';
 
   const me = room.members.find((m) => m.userId === myId);
   if (me) {

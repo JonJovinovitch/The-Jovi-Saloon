@@ -34,8 +34,9 @@
   --warn: #d9a13f;
   --bad: #c0483d;
 
-  --card-w: 7.2vmin;
-  --card-h: 10.2vmin;
+  /* Larger, casino-readable cards for board and hero hands. */
+  --card-w: 8.8vmin;
+  --card-h: 12.45vmin;
   --radius: 1.2vmin;
 
   color-scheme: dark;
@@ -141,6 +142,22 @@ h3,
   font-weight: 700;
   letter-spacing: 0.02em;
 }
+
+.room-code {
+  padding: 0.48vmin 0.9vmin;
+  border: 1px dashed var(--brass-dim);
+  border-radius: 0.5vmin;
+  color: var(--brass-hi);
+  background: rgba(201, 162, 74, 0.1);
+  font-size: 0.78em;
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.room-code:hover { background: rgba(201, 162, 74, 0.2); border-style: solid; }
+.invite-btn { border-color: var(--brass-dim); color: var(--brass-hi); }
 
 .topbar .spacer {
   flex: 1;
@@ -706,7 +723,7 @@ h3,
   display: flex;
   align-items: center;
   gap: 0.5vmin;
-  z-index: 6;
+  z-index: 12;
   pointer-events: none;
 }
 
@@ -718,6 +735,19 @@ h3,
   font-size: 0.8em;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.bet::before {
+  content: 'BET';
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.15vmin);
+  transform: translateX(-50%);
+  color: rgba(245, 232, 209, 0.74);
+  font-family: var(--display);
+  font-size: 0.62em;
+  font-weight: 800;
+  letter-spacing: 0.12em;
 }
 
 .chip {
@@ -1065,6 +1095,34 @@ h3,
   flex-direction: column;
 }
 
+.chat-panel {
+  position: fixed;
+  right: 1.6vmin;
+  bottom: calc(9vmin + env(safe-area-inset-bottom));
+  width: min(40vmin, calc(100vw - 3.2vmin));
+  height: min(58vmin, 68vh);
+  display: flex;
+  flex-direction: column;
+  z-index: 70;
+  overflow: hidden;
+  border: 1px solid var(--brass-dim);
+  border-top: 0.3vmin solid var(--brass);
+  border-radius: 0.85vmin;
+  background: linear-gradient(180deg, #2a1b12, #130c08);
+  box-shadow: 0 2vmin 6vmin rgba(0, 0, 0, 0.75);
+}
+
+.chat-panel header { display: flex; justify-content: space-between; align-items: center; padding: 1.1vmin 1.3vmin; border-bottom: 1px solid var(--line); }
+.chat-panel h2 { margin: 0.1vmin 0 0; font-size: 1.05em; }
+.chat-kicker { color: var(--brass); font-size: 0.67em; font-weight: 800; letter-spacing: 0.14em; }
+.chat-messages { flex: 1; min-height: 0; overflow-y: auto; padding: 1vmin; display: flex; flex-direction: column; gap: 0.75vmin; }
+.chat-message { max-width: 88%; padding: 0.7vmin 0.9vmin; border-radius: 0.65vmin; background: rgba(255, 241, 211, 0.06); border: 1px solid rgba(201, 162, 74, 0.18); }
+.chat-message.mine { align-self: flex-end; background: rgba(201, 162, 74, 0.16); border-color: rgba(201, 162, 74, 0.38); }
+.chat-message strong { color: var(--brass-hi); font-size: 0.78em; }
+.chat-message p { margin: 0.2vmin 0 0; line-height: 1.35; font-size: 0.9em; word-break: break-word; }
+.chat-compose { display: flex; gap: 0.6vmin; padding: 0.9vmin; border-top: 1px solid var(--line); }
+.chat-compose input { min-width: 0; flex: 1; padding: 0.65vmin 0.8vmin; border-radius: 0.45vmin; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+
 .drawer.open {
   transform: none;
 }
@@ -1253,10 +1311,25 @@ h3,
   max-height: min(88vh, 92%);
 }
 
+.home-modal { padding: 0; overflow: hidden; }
+.home-hero {
+  display: flex;
+  align-items: center;
+  gap: 1.6vmin;
+  padding: 2.3vmin 2.6vmin 2vmin;
+  background: radial-gradient(60% 140% at 15% 0%, rgba(227, 184, 76, 0.22), transparent 65%), linear-gradient(135deg, #372314, #1a100a);
+  border-bottom: 1px solid var(--line);
+}
+.home-hero h2 { margin: 0.15vmin 0 0.35vmin; font-size: 1.7em; }
+.home-hero .sub { margin: 0; }
+.home-star { color: var(--brass-hi); font-size: 4.4vmin; text-shadow: 0 0 2vmin rgba(201, 162, 74, 0.55); }
+.eyebrow { margin: 0; color: var(--brass); font-size: 0.72em; font-weight: 800; letter-spacing: 0.13em; }
+
 .home-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.2vmin;
+  padding: 1.8vmin 2vmin 2.2vmin;
 }
 
 .home-grid section {
@@ -1266,6 +1339,12 @@ h3,
   border-radius: 0.7vmin;
   background: rgba(0, 0, 0, 0.18);
 }
+
+.home-grid .home-action { position: relative; min-height: 17vmin; border-top: 0.25vmin solid var(--brass-dim); }
+.home-grid .home-action.join { border-top-color: var(--brass); background: linear-gradient(155deg, rgba(201, 162, 74, 0.15), rgba(0, 0, 0, 0.14)); }
+.home-icon { float: right; color: rgba(236, 205, 131, 0.62); font-family: var(--display); font-size: 3vmin; line-height: 1; }
+.home-action .btn { position: absolute; bottom: 1.2vmin; left: 1.2vmin; }
+.host-steps { grid-column: span 1; }
 
 .home-grid .rules { grid-column: span 2; }
 .home-grid h3 { margin: 0 0 0.6vmin; color: var(--brass-hi); }
@@ -1329,6 +1408,27 @@ h3,
   gap: 0.8vmin;
   justify-content: flex-end;
   margin-top: 1.6vmin;
+}
+
+.invite-sheet label {
+  display: block;
+  margin: 1.2vmin 0 0.4vmin;
+  color: var(--brass-hi);
+  font-size: 0.82em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.invite-sheet input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.75vmin 0.9vmin;
+  border-radius: 0.5vmin;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--brass-dim);
+  font-family: ui-monospace, Consolas, monospace;
 }
 
 /* ------------------------------------------------------------------ *
@@ -1825,8 +1925,8 @@ body:has(.legal-wrap) {
 /* Narrow Discord side-panel layout. */
 @media (max-aspect-ratio: 3/4) {
   :root {
-    --card-w: 9vmin;
-    --card-h: 12.6vmin;
+    --card-w: 10vmin;
+    --card-h: 14.15vmin;
   }
   .table {
     aspect-ratio: 3 / 4;
